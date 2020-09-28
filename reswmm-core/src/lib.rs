@@ -1,4 +1,3 @@
-extern crate uom;
 pub mod units;
 pub mod xsection;
 #[cfg(test)]

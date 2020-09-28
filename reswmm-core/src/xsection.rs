@@ -1,5 +1,7 @@
-use uom::si::f64::{Length, Area};
+use crate::units::{Qnty, LengthUnit, AreaUnit};
 
+pub type Length = Qnty<LengthUnit>;
+pub type Area = Qnty<AreaUnit>;
 
 pub trait XSection {
     fn area(&self, depth: Length) -> Area;
