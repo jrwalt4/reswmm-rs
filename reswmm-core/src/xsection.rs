@@ -1,10 +1,10 @@
 use furlong::{
     qnty::Qnty,
-    unit::{AreaUnit, LengthUnit},
+    si,
 };
 
-type Length = Qnty<LengthUnit>;
-type Area = Qnty<AreaUnit>;
+type Length = Qnty<si::Length>;
+type Area = Qnty<si::Area>;
 
 pub trait XSection {
     fn area(&self, depth: Length) -> Area;
