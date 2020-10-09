@@ -48,10 +48,10 @@ where
     <D as Dimension>::Time: Integer,
 {
     fn abbr() -> String {
-        let length_abbr = <<S as UnitSystem>::Length as BaseUnitInfo>::abbr;
+        let length_abbr = <<S as UnitSystem>::Length as BaseUnitInfo>::ABBR;
         let length_pwr = <<D as Dimension>::Length as Integer>::I8;
 
-        let time_abbr = <<S as UnitSystem>::Time as BaseUnitInfo>::abbr;
+        let time_abbr = <<S as UnitSystem>::Time as BaseUnitInfo>::ABBR;
         let time_pwr = <<D as Dimension>::Time as Integer>::I8;
         let length_part = match length_pwr {
             0 => String::from(""),

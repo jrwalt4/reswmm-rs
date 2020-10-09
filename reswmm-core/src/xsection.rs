@@ -1,4 +1,4 @@
-use units::{
+use furlong::{
     qnty::Qnty,
     unit::{AreaUnit, LengthUnit},
 };

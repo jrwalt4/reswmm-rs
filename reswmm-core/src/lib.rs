@@ -1,4 +1,4 @@
-pub extern crate units;
+pub extern crate furlong as units;
 pub mod xsection;
 #[cfg(test)]
 mod tests {

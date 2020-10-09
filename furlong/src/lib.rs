@@ -1,4 +1,3 @@
-#![allow(non_upper_case_globals)]
 extern crate typenum;
 
 pub mod qnty;
