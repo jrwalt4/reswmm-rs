@@ -3,5 +3,6 @@
 
 members = [
     "reswmm-cli",
-    "reswmm-core"
+    "reswmm-core",
+    "units"
 ]

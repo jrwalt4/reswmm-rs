@@ -1,4 +1,7 @@
-use reswmm_core::{xsection, units};
+use reswmm_core::{
+    units::{qnty::Qnty, unit::LengthUnit},
+    xsection,
+};
 
 #[allow(unused)]
 macro_rules! my_macro {
@@ -8,10 +11,10 @@ macro_rules! my_macro {
 }
 
 fn main() {
-    let width = units::Qnty::<units::LengthUnit>::new(2.0);
-    let depth = units::Qnty::<units::LengthUnit>::new(2.0);
+    let width = Qnty::<LengthUnit>::new(2.0);
+    let depth = Qnty::<LengthUnit>::new(2.0);
     let rect = xsection::new_xs(xsection::Kind::Rectangle, width);
     println!("Rect area at {:?} is {:?}.", depth, rect.area(depth));
     let hello = "world";
-    my_macro![{hello}];
+    my_macro![{ hello }];
 }

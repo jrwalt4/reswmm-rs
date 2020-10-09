@@ -1,21 +1,22 @@
-use crate::units::{Qnty, LengthUnit, AreaUnit};
+use units::{
+    qnty::Qnty,
+    unit::{AreaUnit, LengthUnit},
+};
 
-pub type Length = Qnty<LengthUnit>;
-pub type Area = Qnty<AreaUnit>;
+type Length = Qnty<LengthUnit>;
+type Area = Qnty<AreaUnit>;
 
 pub trait XSection {
     fn area(&self, depth: Length) -> Area;
 }
 
 pub struct Rectangle {
-    width: Length
+    width: Length,
 }
 
 impl Rectangle {
-    fn new(width: Length) -> Rectangle {
-        return Rectangle {
-            width
-        };
+    pub fn new(width: Length) -> Rectangle {
+        return Rectangle { width };
     }
 }
 
@@ -26,14 +27,12 @@ impl XSection for Rectangle {
 }
 
 pub struct Circle {
-    diameter: Length
+    diameter: Length,
 }
 
 impl Circle {
-    fn new(diameter: Length) -> Circle {
-        return Circle {
-            diameter
-        };
+    pub fn new(diameter: Length) -> Circle {
+        return Circle { diameter };
     }
 }
 
@@ -45,12 +44,12 @@ impl XSection for Circle {
 
 pub enum Kind {
     Circle,
-    Rectangle
+    Rectangle,
 }
 
 pub fn new_xs(kind: Kind, prop: Length) -> Box<dyn XSection> {
     return match kind {
         Kind::Circle => Box::new(Circle::new(prop)),
-        Kind::Rectangle => Box::new(Rectangle::new(prop))
+        Kind::Rectangle => Box::new(Rectangle::new(prop)),
     };
 }
