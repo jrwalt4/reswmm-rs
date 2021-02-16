@@ -1,6 +1,6 @@
 use furlong::{
     qnty::Qnty,
-    si,
+    system::si,
 };
 
 type Length = Qnty<si::Length>;
