@@ -1,6 +1,6 @@
 use reswmm_core::{
     units::{qnty::Qnty, system::si::Length},
-    xsection,
+    xsection::{XSection, XS, RectangleXS},
 };
 
 #[allow(unused)]
@@ -13,7 +13,7 @@ macro_rules! my_macro {
 fn main() {
     let width = Qnty::<Length>::new(2.0);
     let depth = Qnty::<Length>::new(2.0);
-    let rect = xsection::new_xs(xsection::Kind::Rectangle, width);
+    let rect = XSection::from(RectangleXS::new(width));
     println!("Rect area at {:?} is {:?}.", depth, rect.area(depth));
     let hello = "world";
     my_macro![{ hello }];

@@ -1,3 +1,4 @@
+use enum_dispatch::enum_dispatch;
 use furlong::{
     qnty::Qnty,
     system::si,
@@ -6,50 +7,45 @@ use furlong::{
 type Length = Qnty<si::Length>;
 type Area = Qnty<si::Area>;
 
-pub trait XSection {
+#[enum_dispatch]
+pub enum XSection {
+    Circle(CircleXS),
+    Rectangle(RectangleXS),
+}
+
+#[enum_dispatch(XSection)]
+pub trait XS {
     fn area(&self, depth: Length) -> Area;
 }
 
-pub struct Rectangle {
+pub struct RectangleXS {
     width: Length,
 }
 
-impl Rectangle {
-    pub fn new(width: Length) -> Rectangle {
-        return Rectangle { width };
+impl RectangleXS {
+    pub fn new(width: Length) -> RectangleXS {
+        return RectangleXS { width };
     }
 }
 
-impl XSection for Rectangle {
+impl XS for RectangleXS {
     fn area(&self, depth: Length) -> Area {
         return self.width * depth;
     }
 }
 
-pub struct Circle {
+pub struct CircleXS {
     diameter: Length,
 }
 
-impl Circle {
-    pub fn new(diameter: Length) -> Circle {
-        return Circle { diameter };
+impl CircleXS {
+    pub fn new(diameter: Length) -> CircleXS {
+        return CircleXS { diameter };
     }
 }
 
-impl XSection for Circle {
+impl XS for CircleXS {
     fn area(&self, depth: Length) -> Area {
         return self.diameter * depth;
     }
-}
-
-pub enum Kind {
-    Circle,
-    Rectangle,
-}
-
-pub fn new_xs(kind: Kind, prop: Length) -> Box<dyn XSection> {
-    return match kind {
-        Kind::Circle => Box::new(Circle::new(prop)),
-        Kind::Rectangle => Box::new(Rectangle::new(prop)),
-    };
 }
