@@ -1,0 +1,21 @@
+name: reswmm
+version: "0.1.0"
+args:
+    - width:
+        short: w
+        long: width
+        value_name: LENGTH
+        help: rectangle width
+        takes_value: true
+        required: true
+    - depth:
+        short: d
+        long: depth
+        value_name: LENGTH
+        help: rectangle depth
+        takes_value: true
+        required: true
+    - verbose:
+        short: s
+        takes_value: false
+        help: Sets the level of verbosity
