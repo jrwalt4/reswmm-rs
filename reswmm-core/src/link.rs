@@ -20,6 +20,7 @@ where <D as Deref>::Target: Link{
 #[derive(Debug)]
 pub enum LinkKind {
     Conduit(Conduit),
+    #[cfg(feature = "custom_links")]
     Extension(Box<dyn Link>)
 }
 

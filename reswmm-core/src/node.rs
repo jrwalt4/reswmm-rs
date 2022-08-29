@@ -17,19 +17,9 @@ where <D as Deref>::Target: Node {
 #[enum_dispatch(Node)]
 pub enum NodeKind {
     Junction(Junction),
+    #[cfg(feature = "custom_nodes")]
     Extension(Box<dyn Node>)
 }
-
-/*
-impl Node for NodeKind {
-    fn invert(&self) -> f64 {
-        match self {
-            Self::Junction(j) => j.invert(),
-            Self::Extension(b) => b.invert()
-        }
-    }
-}
-// */
 
 pub type NodeElement = Element<NodeKind>;
 

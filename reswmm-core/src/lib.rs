@@ -31,7 +31,7 @@ impl Project {
 
 #[cfg(test)]
 mod test {
-    use crate::link::{Conduit, Link};
+    use crate::link::{Conduit};
 
     use super::*;
     #[test]
@@ -40,20 +40,26 @@ mod test {
         let l = Conduit{length: 2.0};
         prj.add_link(1, "L-1", l);
 
-        let l2: Box<dyn Link> = Box::new(Conduit{length: 3.0});
-        prj.add_link(2, "L-2", l2);
+        #[cfg(feature="custom_links")]
+        {
+            let l2: Box<dyn link::Link> = Box::new(Conduit{length: 3.0});
+            prj.add_link(2, "L-2", l2);
+        }
     }
 }
 
 pub fn run() {
-    use crate::link::{Conduit, Link};
+    use crate::link::{Conduit};
 
     let mut prj = Project::new();
     let l = Conduit{length: 2.0};
     prj.add_link(1, "L-1", l);
 
-    let l2: Box<dyn Link> = Box::new(Conduit{length: 3.0});
-    prj.add_link(2, "L-2", l2);
+    #[cfg(feature="custom_links")]
+    {
+        let l2: Box<dyn link::Link> = Box::new(Conduit{length: 3.0});
+        prj.add_link(2, "L-2", l2);
+    }
 
     for link in prj.links {
         println!("{link:?}");
