@@ -49,3 +49,16 @@ impl XS for CircleXS {
         return self.diameter * depth;
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn xsection() {
+        let xs = XSection::from(RectangleXS::new(Length::new(2.0)));
+        let depth = Length::new(2.0);
+        let area = Area::new(4.0);
+        assert_eq!(xs.area(depth), area);
+    }
+}

@@ -4,6 +4,7 @@ use clap::App;
 use reswmm_core::{
     units::{qnty::Qnty, system::si::Length},
     xsection::{XSection, XS, RectangleXS},
+    run
 };
 
 fn main() {
@@ -25,4 +26,6 @@ fn main() {
     } else {
         println!("{:?}", area);
     }
+
+    run();
 }
