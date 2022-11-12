@@ -4,6 +4,8 @@ pub mod xsection;
 pub mod element;
 pub mod node;
 pub mod link;
+pub mod input;
+pub mod project;
 
 use std::{collections::HashMap};
 
