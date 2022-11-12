@@ -1,11 +1,11 @@
 use enum_dispatch::enum_dispatch;
 use furlong::{
-    qnty::Qnty,
-    system::si,
+    Qnty,
+    system::{self, si},
 };
 
-type Length = Qnty<si::Length>;
-type Area = Qnty<si::Area>;
+type Length = Qnty<si::Meters>;
+type Area = Qnty<system::Area<si::System>>;
 
 #[enum_dispatch]
 pub enum XSection {
@@ -56,9 +56,9 @@ mod tests {
     use super::*;
     #[test]
     fn xsection() {
-        let xs = XSection::from(RectangleXS::new(Length::new(2.0)));
-        let depth = Length::new(2.0);
-        let area = Area::new(4.0);
+        let xs = XSection::from(RectangleXS::new(Length::from(2.0)));
+        let depth = Length::from(2.0);
+        let area = Area::from(4.0);
         assert_eq!(xs.area(depth), area);
     }
 }

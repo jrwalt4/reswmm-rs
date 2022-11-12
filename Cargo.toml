@@ -3,6 +3,5 @@
 
 members = [
     "reswmm-cli",
-    "reswmm-core",
-    "furlong"
+    "reswmm-core"
 ]
