@@ -1,0 +1,3 @@
+[submodule "furlong"]
+	path = furlong
+	url = https://github.com/jrwalt4/furlong

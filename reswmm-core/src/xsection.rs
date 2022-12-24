@@ -1,6 +1,6 @@
 use enum_dispatch::enum_dispatch;
 use furlong::{
-    qnty::Qnty,
+    Qnty,
     system::si,
 };
 
