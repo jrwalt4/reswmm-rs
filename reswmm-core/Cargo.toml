@@ -14,4 +14,9 @@ rusqlite = "0.28.0"
 [features]
 custom_nodes = []
 custom_links = []
-custom_elements = ["custom_nodes", "custom_links"]
+custom_regions = []
+custom_elements = [
+    "custom_nodes",
+    "custom_links",
+    "custom_regions"
+]
