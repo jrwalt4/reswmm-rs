@@ -1,38 +1,74 @@
 use crate::element::Element;
+#[cfg(feature = "custom_regions")]
+use self::custom::CustomRegion;
 
-use std::fmt::Debug;
+use enum_dispatch::enum_dispatch;
+use serde::{Serialize, Deserialize};
 
-pub trait Region: Debug {
+#[enum_dispatch]
+pub trait Region {
     fn area(&self) -> f64;
 }
 
-#[derive(Debug)]
+#[enum_dispatch(Region)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "region_kind")]
 pub enum RegionKind {
     SubBasin(SubBasin),
     #[cfg(feature = "custom_regions")]
-    Extension(Box<dyn Region>)
+    #[serde(skip)]
+    // TODO: custom de/serialization
+    Custom(CustomRegion)
 }
 
 pub type RegionElement = Element<RegionKind>;
 
-impl Region for RegionKind {
-    fn area(&self) -> f64 {
-        use RegionKind::*;
-        match self {
-            SubBasin(sb) => sb.area(),
-            #[cfg(feature = "custom_regions")]
-            Extension(region) => region.area()
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SubBasin {
     pub area: f64
+}
+
+impl SubBasin {
+    pub fn new(area: f64) -> Self {
+        Self { area }
+    }
 }
 
 impl Region for SubBasin {
     fn area(&self) -> f64 {
         self.area
+    }
+}
+
+#[cfg(feature = "custom_regions")]
+mod custom {
+    use super::*;
+
+    use std::fmt::{self, Debug, Formatter};
+
+    pub struct CustomRegion(Box<dyn Region>);
+
+    impl CustomRegion {
+        pub fn new(region: Box<dyn Region>) -> Self {
+            CustomRegion(region)
+        }
+    }
+
+    impl Region for CustomRegion {
+        fn area(&self) -> f64 {
+            self.0.area()
+        }
+    }
+
+    impl Debug for CustomRegion {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            f.debug_struct("CustomRegion").finish_non_exhaustive()
+        }
+    }
+
+    impl std::cmp::PartialEq for CustomRegion {
+        fn eq(&self, other: &Self) -> bool {
+            self.0.area() == other.0.area()
+        }
     }
 }
