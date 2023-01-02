@@ -1,17 +1,20 @@
+use serde::{Serialize, Deserialize};
+
 use std::ops::Deref;
 
 pub type UID = i32;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Element<K> {
     pub uid: UID,
     pub name: String,
+    #[serde(flatten)]
     pub kind: K
 }
 
 impl<K> Element<K> {
-    pub fn new<U: Into<K>>(uid: UID, name: String, kind: U) -> Self {
-        Element {uid, name, kind: kind.into()}
+    pub fn new<S: ToString, U: Into<K>>(uid: UID, name: S, kind: U) -> Self {
+        Element {uid, name: name.to_string(), kind: kind.into()}
     }
 }
 

@@ -1,32 +1,28 @@
 use crate::element::Element;
 
 use enum_dispatch::enum_dispatch;
-use std::ops::Deref;
-use std::fmt::Debug;
+use serde::{Serialize, Deserialize};
+
+use std::fmt::{self, Debug, Formatter};
 
 #[enum_dispatch]
-pub trait Link: Debug {
+pub trait Link {
     fn length(&self) -> f64;
 }
 
-impl<D: Deref + Debug> Link for D 
-where <D as Deref>::Target: Link{
-    fn length(&self) -> f64 {
-        (**self).length()
-    }
-}
-
 #[enum_dispatch(Link)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum LinkKind {
     Conduit(Conduit),
     #[cfg(feature = "custom_links")]
-    Extension(Box<dyn Link>)
+    #[serde(skip)]
+    // TODO: de/serailization
+    Custom(CustomLink)
 }
 
 pub type LinkElement = Element<LinkKind>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Conduit {
     pub length: f64
 }
@@ -34,5 +30,25 @@ pub struct Conduit {
 impl Link for Conduit {
     fn length(&self) -> f64 {
         self.length
+    }
+}
+
+pub struct CustomLink(Box<dyn Link>);
+
+impl CustomLink {
+    pub fn new(custom: Box<dyn Link>) -> Self {
+        CustomLink(custom)
+    }
+}
+
+impl Link for CustomLink {
+    fn length(&self) -> f64 {
+        self.0.length()
+    }
+}
+
+impl Debug for CustomLink {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CustomLink").finish_non_exhaustive()
     }
 }

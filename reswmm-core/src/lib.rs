@@ -5,7 +5,7 @@ pub mod element;
 pub mod node;
 pub mod link;
 pub mod region;
-pub mod input;
+pub mod io;
 pub mod project;
 
 use std::{collections::HashMap};
@@ -45,8 +45,8 @@ mod test {
 
         #[cfg(feature="custom_links")]
         {
-            let l2: Box<dyn link::Link> = Box::new(Conduit{length: 3.0});
-            prj.add_link(2, "L-2", l2);
+            let l2: link::CustomLink = link::CustomLink::new(Box::new(Conduit{length: 3.0}));
+            prj.add_link(2, "L-2", link::LinkKind::Custom(l2));
         }
     }
 }
@@ -60,8 +60,8 @@ pub fn run() {
 
     #[cfg(feature="custom_links")]
     {
-        let l2: Box<dyn link::Link> = Box::new(Conduit{length: 3.0});
-        prj.add_link(2, "L-2", l2);
+        let l2: link::CustomLink = link::CustomLink::new(Box::new(Conduit{length: 3.0}));
+        prj.add_link(2, "L-2", link::LinkKind::Custom(l2));
     }
 
     for link in prj.links {
