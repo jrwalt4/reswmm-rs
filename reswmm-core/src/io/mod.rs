@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod io_test {
     use crate::node::{NodeElement, Junction};
+    use crate::link::{LinkElement, Conduit};
     use crate::region::{RegionElement, SubBasin};
     use serde_json;
 
@@ -24,13 +25,18 @@ mod io_test {
     fn serde_node_json() {
         let n2 = NodeElement::new(2, "N2", Junction::new(102.0));
         let n2_json = serde_json::json!({
-            "kind": "Junction",
+            "node_kind": "Junction",
             "uid": 2,
             "name": "N2",
             "invert": 102.0
         }).to_string();
         let n2_de = serde_json::from_str(&n2_json).unwrap();
         assert_eq!(n2, n2_de);
+    }
+
+    #[test]
+    fn serde_link() {
+        test_ser_de!(LinkElement::new(1, "C1", Conduit::new(100.0)));
     }
 
     #[test]

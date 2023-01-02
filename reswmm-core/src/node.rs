@@ -12,7 +12,7 @@ pub trait Node {
 
 #[enum_dispatch(Node)]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "kind")]
+#[serde(tag = "node_kind")]
 pub enum NodeKind {
     #[serde(alias = "junction")]
     Junction(Junction),
