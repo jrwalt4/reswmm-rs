@@ -1,9 +1,9 @@
 use crate::element::Element;
+#[cfg(feature="custom_links")]
+pub use custom::CustomLink;
 
 use enum_dispatch::enum_dispatch;
 use serde::{Serialize, Deserialize};
-
-use std::fmt::{self, Debug, Formatter};
 
 #[enum_dispatch]
 pub trait Link {
@@ -11,7 +11,8 @@ pub trait Link {
 }
 
 #[enum_dispatch(Link)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "link_kind")]
 pub enum LinkKind {
     Conduit(Conduit),
     #[cfg(feature = "custom_links")]
@@ -22,9 +23,15 @@ pub enum LinkKind {
 
 pub type LinkElement = Element<LinkKind>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Conduit {
     pub length: f64
+}
+
+impl Conduit {
+    pub fn new(length: f64) -> Self {
+        Self { length }
+    }
 }
 
 impl Link for Conduit {
@@ -35,6 +42,9 @@ impl Link for Conduit {
 #[cfg(feature="custom_links")]
 mod custom {
     use super::*;
+
+    use std::fmt::{self, Debug, Formatter};
+
     pub struct CustomLink(Box<dyn Link>);
 
     impl CustomLink {
@@ -54,6 +64,10 @@ mod custom {
             f.debug_struct("CustomLink").finish_non_exhaustive()
         }
     }
+
+    impl std::cmp::PartialEq for CustomLink {
+        fn eq(&self, other: &Self) -> bool {
+            self.0.length() == other.0.length()
+        }
+    }
 }
-#[cfg(feature="custom_links")]
-pub use custom::*;

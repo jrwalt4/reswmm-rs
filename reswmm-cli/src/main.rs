@@ -4,7 +4,6 @@ use clap::App;
 use reswmm_core::{
     units::{Qnty, system::si::Meters as Length},
     xsection::{XSection, XS, RectangleXS},
-    run
 };
 
 fn main() {
@@ -18,7 +17,7 @@ fn main() {
     let depth = Qnty::<Length, f64>::from(depth_arg.parse::<f64>().expect("Invalid depth"));
 
     let rect = XSection::from(RectangleXS::new(width));
-    let area = rect.area(depth);
+    let area = rect.a_of_y(depth);
 
     let verbose = matches.is_present("verbose");
     if verbose {
@@ -26,6 +25,4 @@ fn main() {
     } else {
         println!("{:?}", area);
     }
-
-    run();
 }
