@@ -4,7 +4,6 @@ use enum_dispatch::enum_dispatch;
 use serde::{Serialize, Deserialize};
 
 use std::cmp::PartialEq;
-use std::fmt::{self, Debug, Formatter};
 
 #[enum_dispatch]
 pub trait Node {
@@ -42,22 +41,31 @@ impl Node for Junction {
     }
 }
 
-pub struct CustomNode(Box<dyn Node>);
+#[cfg(feature="custom_nodes")]
+mod custom {
+    use super::*;
 
-impl Node for CustomNode {
-    fn invert(&self) -> f64 {
-        self.0.invert()
+    use std::fmt::{self, Debug, Formatter};
+    
+    pub struct CustomNode(Box<dyn Node>);
+
+    impl Node for CustomNode {
+        fn invert(&self) -> f64 {
+            self.0.invert()
+        }
+    }
+
+    impl PartialEq for CustomNode {
+        fn eq(&self, other: &Self) -> bool {
+            self.0.invert() == other.0.invert()
+        }
+    }
+
+    impl Debug for CustomNode {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            f.debug_struct("CustomNode").finish_non_exhaustive()
+        }
     }
 }
-
-impl PartialEq for CustomNode {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.invert() == other.0.invert()
-    }
-}
-
-impl Debug for CustomNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CustomNode").finish_non_exhaustive()
-    }
-}
+#[cfg(feature="custom_nodes")]
+pub use custom::*;
