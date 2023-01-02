@@ -32,23 +32,28 @@ impl Link for Conduit {
         self.length
     }
 }
+#[cfg(feature="custom_links")]
+mod custom {
+    use super::*;
+    pub struct CustomLink(Box<dyn Link>);
 
-pub struct CustomLink(Box<dyn Link>);
+    impl CustomLink {
+        pub fn new(custom: Box<dyn Link>) -> Self {
+            CustomLink(custom)
+        }
+    }
 
-impl CustomLink {
-    pub fn new(custom: Box<dyn Link>) -> Self {
-        CustomLink(custom)
+    impl Link for CustomLink {
+        fn length(&self) -> f64 {
+            self.0.length()
+        }
+    }
+
+    impl Debug for CustomLink {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            f.debug_struct("CustomLink").finish_non_exhaustive()
+        }
     }
 }
-
-impl Link for CustomLink {
-    fn length(&self) -> f64 {
-        self.0.length()
-    }
-}
-
-impl Debug for CustomLink {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CustomLink").finish_non_exhaustive()
-    }
-}
+#[cfg(feature="custom_links")]
+pub use custom::*;
