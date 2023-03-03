@@ -1,14 +1,9 @@
-use enum_dispatch::enum_dispatch;
-use furlong::{
-    Qnty,
-    system::si,
-};
-use serde::{Serialize, Deserialize};
+//! Cross Section shapes
 
-type Length = Qnty<si::Length>;
-type Area = Qnty<si::Area>;
-// TODO: units of Length^5/3
-type SectFact = f64;
+use crate::units::{self, Length, Area, SectFact};
+
+use enum_dispatch::enum_dispatch;
+use serde::{Serialize, Deserialize};
 
 #[enum_dispatch]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -65,7 +60,7 @@ pub trait XS {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RectangleXS {
-    #[serde(with="serde_units")]
+    #[serde(with="units")]
     width: Length,
 }
 
@@ -103,7 +98,7 @@ impl XS for RectangleXS {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CircleXS {
-    #[serde(with="serde_units")]
+    #[serde(with="units")]
     diameter: Length,
 }
 
@@ -149,30 +144,5 @@ mod tests {
         let depth = Length::new(2.0);
         let area = Area::new(4.0);
         assert_eq!(xs.a_of_y(depth), area);
-    }
-}
-
-mod serde_units {
-    use super::*;
-    use serde::{Serializer, Deserializer, de::Visitor};
-
-    pub fn serialize<S>(q: &Length, s: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        s.serialize_f64(*q.value())
-    }
-    pub fn deserialize<'de, D>(d: D) -> Result<Length, D::Error> where D: Deserializer<'de> {
-        struct QuantityVisitor;
-        impl<'de> Visitor<'de> for QuantityVisitor {
-            type Value = Length;
-            fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
-                where
-                    E: serde::de::Error, {
-                Ok(Length::new(v))
-            }
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(formatter, "a length")
-            }
-        }
-        d.deserialize_f64(QuantityVisitor)
     }
 }
