@@ -6,9 +6,11 @@ pub mod element;
 pub mod node;
 pub mod link;
 pub mod region;
+pub mod router;
 pub mod project;
 pub mod error;
 pub mod series;
+pub mod table;
 
 // mod util;
 
