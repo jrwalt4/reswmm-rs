@@ -1,21 +1,30 @@
-use crate::element::{Element, Ref};
-use crate::node::{NodeElement};
+use crate::element::{Element, ElementRef};
+use crate::node::NodeBase;
+use crate::table::TableBase;
+use crate::xsection::XSection;
 
 #[cfg(feature="custom_links")]
 pub use self::custom::CustomLink;
 
-use enum_dispatch::enum_dispatch;
 use serde::{Serialize, Deserialize};
 
-#[enum_dispatch]
-pub trait Link {
-    fn length(&self) -> f64;
-}
+pub trait Link {}
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LinkBase {
-    length: f64,
-    us_node: Ref<NodeElement>
+    us_node: ElementRef<NodeBase>,
+    ds_node: ElementRef<NodeBase>,
+    
+    flow_init: f32,
+    flow_limit: f32,
+    
+    k_entrance: f32,
+    k_avg: f32,
+    k_exit: f32,
+    
+    flap_gate: bool,
+
+    kind: LinkKind
 }
 
 pub type LinkElement = Element<LinkBase>;
@@ -28,11 +37,14 @@ pub struct LinkState {
     pub froude: f32
 }
 
-#[enum_dispatch(Link)]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "link_kind")]
 pub enum LinkKind {
     Conduit(Conduit),
+    Orifice(Orifice),
+    Weir(Weir),
+    Outlet(Outlet),
+    // TODO: Pump(Pump),
     #[cfg(feature = "custom_links")]
     #[serde(skip)]
     // TODO: de/serailization
@@ -41,20 +53,52 @@ pub enum LinkKind {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Conduit {
-    pub length: f64
+    length: f64,
+    roughness: f64,
+    barrels: u8,
+    xsect: XSection
 }
 
-impl Conduit {
-    pub fn new(length: f64) -> Self {
-        Self { length }
-    }
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Orifice {
+    kind: OrificeKind,
+    shape: XSection,
+    cd: f64,
+    open_rate: f64
 }
 
-impl Link for Conduit {
-    fn length(&self) -> f64 {
-        self.length
-    }
+#[derive(Debug, Serialize, Deserialize, PartialEq )]
+pub enum OrificeKind {
+    Side,
+    Bottom
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Weir {
+    kind: WeirKind,
+    cd_1: f64,
+    cd_2: f64,
+    contractions: u8
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq )]
+pub enum WeirKind {
+    Transverse,
+    Sideflow,
+    Notch,
+    Trapezoid,
+    Roadway
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum Outlet {
+    Functional {
+        coeff: f64,
+        expon: f64
+    },
+    Tabular(ElementRef<TableBase>),
+}
+
 #[cfg(feature="custom_links")]
 mod custom {
     use super::*;
@@ -69,43 +113,10 @@ mod custom {
         }
     }
 
-    impl Link for CustomLink {
-        fn length(&self) -> f64 {
-            self.0.length()
-        }
-    }
-
     impl Debug for CustomLink {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             f.debug_struct("CustomLink").finish_non_exhaustive()
         }
     }
 
-    impl std::cmp::PartialEq for CustomLink {
-        fn eq(&self, other: &Self) -> bool {
-            self.0.length() == other.0.length()
-        }
-    }
-}
-
-pub mod ir {
-    //! Intermediate Representation of link elements
-
-    use crate::element::InputRef;
-    use crate::node::NodeKind;
-
-    use serde::Serialize;
-
-    #[derive(Serialize)]
-    pub struct LinkIR {
-        us_node: InputRef<NodeKind>,
-        ds_node: InputRef<NodeKind>,
-
-        flow_init: f32,
-        flow_limit: f32,
-        k_entrance: f32,
-        k_avg: f32,
-        k_exit: f32,
-        flap_gate: bool
-    }
 }

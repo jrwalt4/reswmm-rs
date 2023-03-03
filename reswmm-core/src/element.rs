@@ -2,7 +2,6 @@ use serde::{Serialize, Deserialize};
 
 use std::ops::Deref;
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 pub type UID = i32;
 
@@ -35,55 +34,26 @@ impl<K, U: Into<K>, S: ToString> From<(UID, S, U)> for Element<K> {
     }
 }
 
-#[derive(Debug)]
-pub struct Ref<K>(Arc<Element<K>>);
+#[repr(transparent)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+pub struct ElementRef<T> {
+    uid: UID,
+    
+    /// use pointer so [Rust drop check doesn't look to drop a T][a]
+    /// 
+    /// [a]: https://doc.rust-lang.org/std/marker/struct.PhantomData.html#ownership-and-the-drop-check
+    #[serde(skip)]
+    kind: PhantomData<*const T>
+}
 
-impl<K> Ref<K> {
+impl<K> ElementRef<K> {
+    pub fn new(uid: UID) -> Self {
+        Self {
+            uid, 
+            kind: PhantomData
+        }
+    }
     pub fn uid(&self) -> UID {
-        self.0.uid
-    }
-
-    pub fn name(&self) -> &str {
-        &self.0.name
-    }
-}
-
-impl<K> Clone for Ref<K> {
-    fn clone(&self) -> Self {
-        Ref(Arc::clone(&self.0))
-    }
-}
-
-pub mod ir {
-    use super::*;
-
-    use std::collections::HashMap;
-
-    #[repr(transparent)]
-    #[derive(Debug, Serialize, Deserialize, PartialEq)]
-    pub struct RefIR<T> {
-        uid: UID,
-        #[serde(skip)]
-        kind: PhantomData<T>
-    }
-
-    impl<T> RefIR<T> {
-        pub fn new(uid: UID) -> Self {
-            Self {
-                uid,
-                kind: PhantomData
-            }
-        }
-
-        pub fn resolve(self, ref_map: &HashMap<UID, Ref<T>>) -> Option<Ref<T>> {
-            ref_map.get(&self.uid).cloned()
-        }
-    }
-
-    pub trait Resolver<T>: Fn(RefIR<T>) -> Option<Ref<T>> {}
-
-    pub trait ResolveWith<F> {
-        type Output;
-        fn resolve(self, f: F) -> Option<Self::Output>;
+        self.uid
     }
 }
