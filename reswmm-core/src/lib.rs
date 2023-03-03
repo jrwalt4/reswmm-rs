@@ -1,6 +1,6 @@
 /// Stormwater Management Model (SWMM) version 6
 
-pub extern crate furlong as units;
+pub mod units;
 pub mod xsection;
 pub mod element;
 pub mod node;
@@ -11,6 +11,7 @@ pub mod project;
 pub mod error;
 pub mod series;
 pub mod table;
+pub mod time;
 
 // mod util;
 

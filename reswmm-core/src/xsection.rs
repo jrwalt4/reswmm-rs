@@ -1,15 +1,12 @@
-use enum_dispatch::enum_dispatch;
-use furlong::{
-    Qnty,
-    system::{self, si},
-};
+//! Cross Section shapes
 
-type Length = Qnty<si::Meters>;
-type Area = Qnty<system::Area<si::System>>;
-// TODO: units of Length^5/3
-type SectFact = f64;
+use crate::units::{self, Length, Area, SectFact};
+
+use enum_dispatch::enum_dispatch;
+use serde::{Serialize, Deserialize};
 
 #[enum_dispatch]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum XSection {
     Circle(CircleXS),
     Rectangle(RectangleXS),
@@ -61,7 +58,9 @@ pub trait XS {
     fn ds_da(&self, area: Area) -> SectFact;
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RectangleXS {
+    #[serde(with="units")]
     width: Length,
 }
 
@@ -97,7 +96,9 @@ impl XS for RectangleXS {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CircleXS {
+    #[serde(with="units")]
     diameter: Length,
 }
 
