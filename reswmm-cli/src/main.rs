@@ -3,8 +3,7 @@ extern crate clap;
 use clap::App;
 use reswmm_core::{
     units::{Qnty, system::si::Length},
-    xsection::{XSection, XS, RectangleXS},
-    run
+    xsection::{XSection, XS, RectangleXS}
 };
 
 fn main() {
@@ -18,7 +17,7 @@ fn main() {
     let depth = Qnty::<Length>::new(depth_arg.parse().expect("Invalid depth"));
 
     let rect = XSection::from(RectangleXS::new(width));
-    let area = rect.area(depth);
+    let area = rect.a_of_y(depth);
 
     let verbose = matches.is_present("verbose");
     if verbose {
@@ -26,6 +25,4 @@ fn main() {
     } else {
         println!("{:?}", area);
     }
-
-    run();
 }
