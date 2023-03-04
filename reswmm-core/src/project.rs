@@ -1,8 +1,8 @@
 /// Project container for nodes, links, regions, etc.
 
-use crate::element::{Element, UID};
-use crate::node::{NodeElement};
-use crate::link::{LinkElement};
+use crate::element::UID;
+use crate::node::NodeElement;
+use crate::link::LinkElement;
 
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -34,5 +34,10 @@ impl Model {
     pub fn get_node<U: Hash + Eq>(&self, uid: &U) -> Option<&NodeElement> 
     where UID: Borrow<U> {
         self.nodes.get(uid)
+    }
+
+    pub fn get_link<U: Hash + Eq>(&self, uid: &U) -> Option<&LinkElement> 
+    where UID: Borrow<U> {
+        self.links.get(uid)
     }
 }
