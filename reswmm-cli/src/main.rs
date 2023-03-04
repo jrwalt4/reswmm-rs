@@ -2,7 +2,7 @@
 extern crate clap;
 use clap::App;
 use reswmm_core::{
-    units::{Qnty, system::si::Length},
+    units::Length,
     xsection::{XSection, XS, RectangleXS}
 };
 
@@ -11,10 +11,10 @@ fn main() {
     let matches = App::from_yaml(yaml).get_matches();
 
     let width_arg = matches.value_of("width").unwrap(); // required input
-    let width = Qnty::<Length>::new(width_arg.parse().expect("Invalid width"));
+    let width = Length::new(width_arg.parse().expect("Invalid width"));
 
     let depth_arg = matches.value_of("depth").unwrap(); // required input
-    let depth = Qnty::<Length>::new(depth_arg.parse().expect("Invalid depth"));
+    let depth = Length::new(depth_arg.parse().expect("Invalid depth"));
 
     let rect = XSection::from(RectangleXS::new(width));
     let area = rect.a_of_y(depth);
