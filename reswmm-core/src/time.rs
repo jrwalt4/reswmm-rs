@@ -1,8 +1,8 @@
 //! Time utilities and types
 
-use chrono::Duration;
+pub use chrono::Duration;
 
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, AddAssign};
 use std::time::Duration as StdDuration;
 
 /// Simulation Time
@@ -25,6 +25,12 @@ impl Add<Duration> for Time {
     }
 }
 
+impl AddAssign<Duration> for Time {
+    fn add_assign(&mut self, rhs: Duration) {
+        self.0 += rhs.num_milliseconds() as u64;
+    }
+}
+
 impl Sub<StdDuration> for Time {
     type Output = Self;
     fn sub(self, rhs: StdDuration) -> Self::Output {
@@ -43,6 +49,7 @@ impl Sub<Duration> for Time {
 }
 
 /// Interval of (start, end)
+#[derive(Debug, Copy, Clone)]
 pub struct Interval(pub Time, pub Time);
 
 impl Interval {
@@ -52,5 +59,13 @@ impl Interval {
 
     pub fn end(&self) -> Time {
         self.1
+    }
+
+    pub fn range(&self) -> (Time, Time) {
+        (self.0, self.1)
+    }
+
+    pub fn advance(self, by: Duration) -> Self {
+        Interval(self.1, self.1 + by)
     }
 }
