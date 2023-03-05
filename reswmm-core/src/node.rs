@@ -17,15 +17,6 @@ pub struct NodeBase {
 
 pub type NodeElement = Element<NodeBase>;
 
-pub struct NodeState {
-    pub ext_inflow: f64,
-    pub lat_inflow: f64,
-    pub overflow: f64,
-    pub new_flow: f64,
-    pub depth: f64,
-    pub volume: f64,
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "node_kind")]
 pub enum NodeKind {
