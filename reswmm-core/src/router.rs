@@ -1,23 +1,36 @@
 //! router
 
+pub mod hydrology;
 pub mod hydraulics;
 
 use crate::element::{UID, Element};
 use crate::node::NodeBase;
 use crate::project::Model;
 use crate::time::{Interval, Time, Duration};
-use crate::error::{Result};
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub trait Router {
+pub trait Router: Sized {
+
+    type Dependency: Router;
     
     type NodeState;
     
     type LinkState;
 
     // type RegionState;
+
+    fn execute(&self, step: RouterStepWorking<Self>, dependency: &RouterStepFinished<Self::Dependency>) -> Result<ModelState<Self>>;
+}
+
+impl Router for () {
+    type Dependency = ();
+    type NodeState = ();
+    type LinkState = ();
+    fn execute(&self, step: RouterStepWorking<Self>, _dependency: &RouterStepFinished<Self::Dependency>) -> Result<ModelState<Self>> {
+        step.commit()
+    }
 }
 
 pub struct ModelState<R: Router> {
@@ -57,7 +70,8 @@ pub type ElementStepMut<'e, K, S> = ElementState<'e, K, StateStep<&'e S, &'e mut
 pub struct RouterStep<P, N> {
     interval: Interval,
     state: StateStep<P, N>,
-    model: Arc<Model>
+    model: Arc<Model>,
+    messages: Vec<Message>
 }
 
 /// A finished calculation that can be used in downstream routers
@@ -82,16 +96,31 @@ impl<R: Router> RouterStepFinished<R> {
 }
 
 impl<R: Router> RouterStepWorking<R> {
-    pub fn advance(&mut self, by: Duration) -> Result<Arc<ModelState<R>>> {
-        self.interval = self.interval.advance(by);// std::mem::replace(&mut self.interval.0, self.interval.1);
-        self.interval.1 += by;
-        let (_prev_time, next_time) = self.interval.range();
-        let new_next = ModelState::empty_from(&self.state.next, next_time);
-        // 'commit' `next` as the new `prev`
-        let new_prev = Arc::new(std::mem::replace(&mut self.state.next, new_next));
-        // drop `old_prev`
-        self.state.prev = Arc::clone(&new_prev);
-        // TODO: check for convergence/valid results
-        return Ok(new_prev)
+
+    pub fn warning(&mut self, msg: Message) {
+        self.messages.push(msg);
+    }
+
+    pub fn error(self, err: Error) -> Result<ModelState<R>> {
+        Err(err)
+    }
+
+    pub fn commit(self) -> Result<ModelState<R>> {
+        // TODO: report warnings
+        Ok(self.state.next)
     }
 }
+
+pub enum Message {
+    MaxIterations,
+    Tolerance,
+    Custom(String),
+}
+
+pub enum Error {
+    BadIndex(UID, usize),
+    Convergence(f64),
+    Other(String)
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
