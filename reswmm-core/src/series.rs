@@ -1,42 +1,59 @@
 //! Series of values (flowrate, depth, rainfall, etc.)
 
-use chrono::Duration;
+use crate::time::Time;
+
+use std::collections::{BTreeMap, btree_map};
 
 pub struct Series<T> {
-    values: Vec<SeriesItem<T>>
+    values: BTreeMap<Time, SeriesItem<T>>
 }
 
 impl<T> Series<T> {
     pub fn new() -> Self {
         Series {
-            values: Vec::new()
+            values: BTreeMap::new()
         }
     }
 
-    pub fn push<U: Into<SeriesItem<T>>>(&mut self, item: U) -> &mut Self {
-        self.values.push(item.into());
+    pub fn add<U: Into<SeriesItem<T>>>(&mut self, item: U) -> &mut Self {
+        let item = item.into();
+        self.values.insert(item.time, item);
         self
     }
 
-    pub fn push_after(&mut self, duration: Duration, value: T) -> &mut Self {
-        let prev = self.values.last().map(|item| item.timestamp).unwrap_or(Duration::zero());
-        self.values.push(SeriesItem {
-            timestamp: prev + duration,
-            value
-        });
-        self
+    pub fn get<Q>(&self, time: &Q) -> Option<&T> 
+    where
+        Time: std::borrow::Borrow<Q>,
+        Q: Ord + ?Sized
+    {
+        self.values.get(time).map(|item| &item.value)
+    }
+
+}
+
+impl<T> IntoIterator for Series<T> {
+    type IntoIter = btree_map::IntoValues<Time, SeriesItem<T>>;
+    type Item = SeriesItem<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.values.into_values()
     }
 }
 
 pub struct SeriesItem<T> {
-    timestamp: Duration,
+    time: Time,
     value: T
 }
 
-impl<T> From<(Duration, T)> for SeriesItem<T> {
-    fn from(val: (Duration, T)) -> Self {
+impl<T> SeriesItem<T> {
+    pub fn value(&self) -> &T {
+        &self.value
+    }
+}
+
+impl<T> From<(Time, T)> for SeriesItem<T> {
+    fn from(val: (Time, T)) -> Self {
         SeriesItem {
-            timestamp: val.0,
+            time: val.0,
             value: val.1
         }
     }
