@@ -5,3 +5,7 @@ members = [
     "reswmm-cli",
     "reswmm-core"
 ]
+
+# https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
+# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html#details
+resolver = "2"

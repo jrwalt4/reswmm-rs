@@ -8,8 +8,14 @@ use std::time::Duration as StdDuration;
 /// Simulation Time
 /// 
 /// Number of milliseconds since the beginning of a simulation. 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time(u64);
+
+impl Time {
+    pub fn zero() -> Self {
+        Self(0)
+    }
+}
 
 impl Add<StdDuration> for Time {
     type Output = Self;

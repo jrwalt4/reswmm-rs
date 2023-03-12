@@ -1,29 +1,15 @@
-use crate::router::{Router, RouterStepWorking, RouterStepFinished, Result, ModelState};
+use super::hydrology::ExtInflow;
 
-use super::hydrology::NrcsRouter;
+use bevy::{
+    ecs::prelude::*
+};
 
-pub struct NodeHydraulicState {
-    pub overflow: f64,
-    pub outflow: f64,
-    pub depth: f64,
-    pub volume: f64,
+#[derive(Component)]
+pub struct Depth(pub f32);
+
+#[derive(Component)]
+pub struct Inflow(pub f32);
+
+pub fn kinematic_router(_query: Query<&ExtInflow>) {
+    todo!()
 }
-
-#[derive(Debug)]
-pub struct KinematicRouter {
-    max_iterations: usize
-}
-
-impl Router for KinematicRouter {
-    type Dependency = NrcsRouter;
-    
-    type NodeState = NodeHydraulicState;
-
-    type LinkState = ();
-
-    fn execute(&self, step: RouterStepWorking<Self>, dependency: &RouterStepFinished<Self::Dependency>) -> Result<ModelState<Self>> {
-        todo!()
-    }
-    
-}
-

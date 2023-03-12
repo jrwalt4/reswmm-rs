@@ -1,43 +1,15 @@
 /// Project container for nodes, links, regions, etc.
 
-use crate::element::UID;
-use crate::node::NodeElement;
-use crate::link::LinkElement;
-
-use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::hash::Hash;
+use bevy::{
+    ecs::world::World
+};
 
 pub struct Project {
-    model: Model
+    model: World
 }
 
 impl Project {
     pub fn new() -> Self {
-        Project { model: Model::new() }
-    }
-}
-
-pub struct Model {
-    nodes: HashMap<UID, NodeElement>,
-    links: HashMap<UID, LinkElement>
-}
-
-impl Model {
-    pub fn new() -> Self {
-        Self { 
-            nodes: HashMap::new(), 
-            links: HashMap::new()
-        }
-    }
-
-    pub fn get_node<U: Hash + Eq>(&self, uid: &U) -> Option<&NodeElement> 
-    where UID: Borrow<U> {
-        self.nodes.get(uid)
-    }
-
-    pub fn get_link<U: Hash + Eq>(&self, uid: &U) -> Option<&LinkElement> 
-    where UID: Borrow<U> {
-        self.links.get(uid)
+        Project { model: World::new() }
     }
 }

@@ -1,20 +1,12 @@
-use crate::router::{Router, RouterStepWorking, RouterStepFinished, Result, ModelState};
+use bevy::{
+    ecs::prelude::*
+};
 
-pub struct NodeHydrologicState {
-    pub dry_inflow: f64,
-    pub wet_inflow: f64,
-}
+#[derive(Debug, Component)]
+pub struct ExtInflow(f32);
 
-pub struct NrcsRouter;
-
-impl Router for NrcsRouter {
-    type Dependency = ();
-
-    type LinkState = ();
-
-    type NodeState = NodeHydrologicState;
-
-    fn execute(&self, step: RouterStepWorking<Self>, _dependency: &RouterStepFinished<Self::Dependency>) -> Result<ModelState<Self>> {
-        step.commit()
+pub fn inflow_router(mut inflows: Query<&mut ExtInflow>) {
+    for mut q in &mut inflows {
+        q.0 += 1.;
     }
 }
