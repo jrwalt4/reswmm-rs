@@ -4,9 +4,10 @@ use crate::units::{self, Length, Area, SectFact};
 
 use enum_dispatch::enum_dispatch;
 use serde::{Serialize, Deserialize};
+use specs::{Component, DenseVecStorage};
 
 #[enum_dispatch]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Component)]
 pub enum XSection {
     Circle(CircleXS),
     Rectangle(RectangleXS),

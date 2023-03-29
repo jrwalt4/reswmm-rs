@@ -1,20 +1,18 @@
-use crate::router::{Router, RouterStepWorking, RouterStepFinished, Result, ModelState};
+use specs::{prelude::*, Component, DenseVecStorage};
 
-pub struct NodeHydrologicState {
-    pub dry_inflow: f64,
-    pub wet_inflow: f64,
-}
+#[derive(Debug, Component)]
+pub struct ExtInflow(f32);
 
-pub struct NrcsRouter;
+pub struct InflowRouter;
 
-impl Router for NrcsRouter {
-    type Dependency = ();
+impl<'a> System<'a> for InflowRouter {
+    type SystemData = (Entities<'a>, WriteStorage<'a, ExtInflow>);
 
-    type LinkState = ();
-
-    type NodeState = NodeHydrologicState;
-
-    fn execute(&self, step: RouterStepWorking<Self>, _dependency: &RouterStepFinished<Self::Dependency>) -> Result<ModelState<Self>> {
-        step.commit()
+    fn run(&mut self, (entities, mut inflows): Self::SystemData) {
+        for (id, q) in (&entities, &mut inflows).join() {
+            q.0 += 1.;
+        }
     }
+
+    
 }
