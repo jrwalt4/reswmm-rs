@@ -1,19 +1,18 @@
-use specs::{Component, DenseVecStorage};
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Node {
     invert: f64,
     rim: f64
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Junction {
     surch_depth: Option<f64>,
     pond_area: Option<f64>,
     init_depth: Option<f64>,
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub enum Outfall {
     /// critical depth outfall condition
     Free,
@@ -25,7 +24,7 @@ pub enum Outfall {
     Fixed(f64)
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct FunctionalStorage {
     evap: f64,
     f_const: f64,

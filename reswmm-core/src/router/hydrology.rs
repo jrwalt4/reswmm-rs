@@ -1,16 +1,18 @@
-use specs::{prelude::*, Component, DenseVecStorage};
+use super::Router;
 
-#[derive(Debug, Component)]
+use hecs::QueryBorrow;
+
+#[derive(Debug)]
 pub struct ExtInflow(f32);
 
 pub struct InflowRouter;
 
-impl<'a> System<'a> for InflowRouter {
-    type SystemData = (Entities<'a>, WriteStorage<'a, ExtInflow>);
+impl<'a> Router<'a> for InflowRouter {
+    type SystemData = (&'a ExtInflow, );
 
-    fn run(&mut self, (entities, mut inflows): Self::SystemData) {
-        for (id, q) in (&entities, &mut inflows).join() {
-            q.0 += 1.;
+    fn run(&mut self, mut query: QueryBorrow<'a, Self::SystemData>) {
+        for (_id, _q) in query.iter() {
+            
         }
     }
 

@@ -1,15 +1,15 @@
-use specs::{Entity, Component, DenseVecStorage};
+use hecs::Entity;
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Link {
     us_node: Entity,
     ds_node: Entity,
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Length(pub f32);
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Conduit {
     flow_init: f32,
     flow_limit: f32,
@@ -24,7 +24,7 @@ pub struct Conduit {
     barrels: u8,
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Orifice {
     kind: OrificeKind,
     cd: f64,
@@ -37,7 +37,7 @@ pub enum OrificeKind {
     Bottom
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Weir {
     kind: WeirKind,
     cd_1: f64,
@@ -54,7 +54,7 @@ pub enum WeirKind {
     Roadway
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Outlet {
     coeff: f64,
     expon: f64

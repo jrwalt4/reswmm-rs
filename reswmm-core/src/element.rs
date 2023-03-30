@@ -1,7 +1,6 @@
-use specs::{Component, DenseVecStorage};
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct UID(pub i32);
 
-#[derive(Debug, Component)]
+#[derive(Debug)]
 pub struct Name(pub String);

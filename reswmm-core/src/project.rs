@@ -1,6 +1,6 @@
 /// Project container for nodes, links, regions, etc.
 
-use specs::{World, WorldExt};
+use hecs::World;
 
 pub struct Project {
     model: World
