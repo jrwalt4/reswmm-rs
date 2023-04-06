@@ -2,7 +2,7 @@ use bevy::{
     ecs::prelude::*
 };
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Copy, Clone)]
 pub struct UID(pub i32);
 
 #[derive(Debug, Component)]

@@ -3,10 +3,10 @@ use bevy::{
 };
 
 #[derive(Debug, Component)]
-pub struct ExtInflow(f32);
+pub struct WetInflow(pub f32);
 
-pub fn inflow_router(mut inflows: Query<&mut ExtInflow>) {
-    for mut q in &mut inflows {
-        q.0 += 1.;
-    }
-}
+#[derive(Debug, Component)]
+pub struct DryInflow(pub f32);
+
+#[derive(Debug, Component)]
+pub struct ExtInflow(pub f32);
