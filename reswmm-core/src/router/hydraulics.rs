@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::node::Node;
 
 use super::{hydrology::{
@@ -26,9 +24,9 @@ pub fn kinematic_router(
 ) {
     let node_flows = nodes.map(|(id, _uid)| {
         let mut q = 0.0;
-        q += q_wet.get_component::<WetInflow>(id).map_or(0.0, |WetInflow(q)| *q);
-        q += q_dry.get_component::<DryInflow>(id).map_or(0.0, |DryInflow(q)| *q);
-        q += q_ext.get_component::<ExtInflow>(id).map_or(0.0, |ExtInflow(q)| *q);
+        q += q_wet.get_component::<WetInflow>(id).map_or(0.0, Into::into);
+        q += q_dry.get_component::<DryInflow>(id).map_or(0.0, Into::into);
+        q += q_ext.get_component::<ExtInflow>(id).map_or(0.0, Into::into);
         q
     });
     for q in node_flows.values() {

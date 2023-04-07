@@ -3,7 +3,8 @@
 
 members = [
     "reswmm-cli",
-    "reswmm-core"
+    "reswmm-core",
+    "reswmm-macros"
 ]
 
 # https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2

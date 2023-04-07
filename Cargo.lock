@@ -1960,9 +1960,18 @@ dependencies = [
  "furlong",
  "itertools",
  "num-traits",
+ "reswmm-macros",
  "rusqlite",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "reswmm-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.11",
 ]
 
 [[package]]
