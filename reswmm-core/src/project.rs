@@ -1,9 +1,13 @@
 
-use crate::router::Router;
+use crate::{
+    element::{Element, UID},
+    router::Router
+};
 
 use bevy_ecs::{
     component::ComponentId,
-    prelude::*
+    prelude::*, 
+    world::EntityMut
 };
 
 use std::collections::HashMap;
@@ -38,6 +42,28 @@ impl Project {
     /// Create a new Project using [`default`](std::default::Default::default).
     pub fn new() -> Self {
         Default::default()
+    }
+
+    /// Add an element to the model. Elements are [bevy Entities](bevy_ecs::entity::Entity) with a 
+    /// [`UID`] and [`Name`](crate::element::Name) component. 
+    /// 
+    /// # Examples
+    /// ```
+    /// # use reswmm_core::{element::Name, project::Project};
+    /// # use bevy_ecs::prelude::*;
+    /// let mut prj = Project::new();
+    /// let el = prj.add_element(1, "J1", ());
+    /// 
+    /// fn read_one(elements: Query<(Entity, &Name)>) {
+    ///     let (_id, Name(name)) = elements.single();
+    ///     assert_eq!(name, "J1");
+    /// }
+    /// 
+    /// prj.add_router(read_one).run();
+    /// 
+    /// ```
+    pub fn add_element<I: Into<UID>, S:ToString, P: Bundle>(&mut self, uid: I, name: S, props: P) -> EntityMut {
+        self.model.spawn((Element::new(uid, name), props))
     }
 
     /// Add a [`Router`] to the [`Project`].
