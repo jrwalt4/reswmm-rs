@@ -7,9 +7,7 @@ use crate::element::UID;
 
 use std::collections::HashMap;
 
-use bevy::{
-    ecs::prelude::*
-};
+use bevy_ecs::prelude::*;
 
 #[derive(Resource, Default)]
 pub struct Nodes(HashMap<Entity, UID>);

@@ -1,6 +1,4 @@
-use bevy::{
-    ecs::prelude::*
-};
+use bevy_ecs::prelude::*;
 
 #[derive(Default, Component)]
 pub struct Region;

@@ -1,8 +1,6 @@
 /// Project container for nodes, links, regions, etc.
 
-use bevy::{
-    ecs::world::World
-};
+use bevy_ecs::prelude::*;
 
 pub struct Project {
     model: World

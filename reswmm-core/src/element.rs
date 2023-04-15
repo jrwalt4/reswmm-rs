@@ -1,6 +1,4 @@
-use bevy::{
-    ecs::prelude::*
-};
+use bevy_ecs::prelude::*;
 
 #[derive(Debug, Component, Copy, Clone)]
 pub struct UID(pub i32);

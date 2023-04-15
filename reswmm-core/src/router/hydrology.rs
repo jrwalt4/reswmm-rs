@@ -1,6 +1,5 @@
-use bevy::{
-    ecs::prelude::*
-};
+use bevy_ecs::prelude::*;
+
 use reswmm_macros::IntoReal;
 
 #[derive(Debug, Component, IntoReal)]

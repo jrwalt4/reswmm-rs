@@ -4,9 +4,7 @@ use crate::units::{self, Length, Area, SectFact};
 
 use enum_dispatch::enum_dispatch;
 use serde::{Serialize, Deserialize};
-use bevy::{
-    ecs::prelude::*
-};
+use bevy_ecs::prelude::*;
 
 #[enum_dispatch]
 #[derive(Debug, Component)]
