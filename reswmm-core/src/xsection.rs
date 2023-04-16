@@ -76,23 +76,23 @@ impl XS for RectangleXS {
         return self.width * depth;
     }
 
-    fn a_of_s(&self,sf:SectFact) -> Area {
+    fn a_of_s(&self, _sf:SectFact) -> Area {
         todo!()
     }
 
-    fn w_of_y(&self,depth:Length) -> Length {
+    fn w_of_y(&self, _depth:Length) -> Length {
         todo!()
     }
 
-    fn r_of_y(&self,depth:Length) -> Length {
+    fn r_of_y(&self, _depth:Length) -> Length {
         todo!()
     }
 
-    fn y_of_a(&self,area:Area) -> Length {
+    fn y_of_a(&self, _area:Area) -> Length {
         todo!()
     }
 
-    fn ds_da(&self,area:Area) -> SectFact {
+    fn ds_da(&self, _area:Area) -> SectFact {
         todo!()
     }
 }
@@ -114,23 +114,23 @@ impl XS for CircleXS {
         return self.diameter * depth;
     }
 
-    fn a_of_s(&self,sf:SectFact) -> Area {
+    fn a_of_s(&self, _sf:SectFact) -> Area {
         todo!()
     }
 
-    fn w_of_y(&self,depth:Length) -> Length {
+    fn w_of_y(&self, _depth:Length) -> Length {
         todo!()
     }
 
-    fn r_of_y(&self,depth:Length) -> Length {
+    fn r_of_y(&self, _depth:Length) -> Length {
         todo!()
     }
 
-    fn y_of_a(&self,area:Area) -> Length {
+    fn y_of_a(&self, _area:Area) -> Length {
         todo!()
     }
 
-    fn ds_da(&self,area:Area) -> SectFact {
+    fn ds_da(&self, _area:Area) -> SectFact {
         todo!()
     }
 }

@@ -28,8 +28,8 @@ fn depth_router2(query: Query<(&Length, &Next<Depth>)>, time: Res<Clock>) {
 
 fn main() {
     let mut prj = Project::new();
-    let e1 = prj.add_element(1, "J1", (Length(10.0), Param::new(Depth(1.0))));
-    let e2 = prj.add_element(2, "J2", (Length(10.0), Param::new(Depth(1.0))));
+    prj.add_element(1, "J1", (Length(10.0), Param::new(Depth(1.0))));
+    prj.add_element(2, "J2", (Length(10.0), Param::new(Depth(1.0))));
 
     prj.add_router(depth_router1).add_router(depth_router2);
     prj.run();
