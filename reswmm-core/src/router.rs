@@ -3,7 +3,7 @@
 pub mod hydrology;
 pub mod hydraulics;
 
-use crate::element::UID;
+use crate::{element::UID, time::Clock};
 
 use std::{
     cell::{RefCell, Ref as CellRef},
@@ -13,7 +13,7 @@ use std::{
 
 use bevy_ecs::{
     archetype::{Archetype, ArchetypeComponentId},
-    component::{ComponentId, Tick},
+    component::ComponentId,
     query::{WorldQuery, QueryFetch, ReadOnlyWorldQuery, Access, FilteredAccess},
     prelude::*,
     system::IntoSystem,
@@ -79,14 +79,26 @@ impl<T> Param<T> {
 
 pub struct Next<T>(PhantomData<T>);
 
-unsafe impl<T: Component> WorldQuery for &Next<T> {
+#[doc(hidden)]
+pub struct ParamFetch<'w, T: Component> {
+    index: usize,
+    inner: QueryFetch<'w, &'w Param<T>>
+}
+
+pub fn init_param_from_component<T: Component + Clone>(init_state: Query<(Entity, &T)>, mut commands: Commands) {
+    for (id, val) in init_state.iter() {
+        commands.entity(id).insert(Param::new(Clone::clone(val)));
+    }
+}
+
+unsafe impl<T: Component + Clone> WorldQuery for &Next<T> {
     type Item<'a> = CellRef<'a, Option<T>>;
 
-    type Fetch<'a> = QueryFetch<'a, &'a Param<T>>;
+    type Fetch<'a> = ParamFetch<'a, T>;
 
     type ReadOnly = Self;
 
-    type State = (Tick, ComponentId);
+    type State = ComponentId;
 
     fn shrink<'wlong: 'wshort, 'wshort>(item: Self::Item<'wlong>) -> Self::Item<'wshort> {
         item
@@ -94,15 +106,19 @@ unsafe impl<T: Component> WorldQuery for &Next<T> {
 
     unsafe fn init_fetch<'w>(
         world: &'w World,
-        (_tick, component_id): &Self::State,
+        component_id: &Self::State,
         last_change_tick: u32,
         change_tick: u32,
     ) -> Self::Fetch<'w> {
-        <&'_ Param<T> as WorldQuery>::init_fetch(world, component_id, last_change_tick, change_tick)
+        ParamFetch {
+            // Clock resource added in init_state
+            index: world.resource::<Clock>().step_count as usize % PARAM_BUFFER_SIZE,
+            inner: <&'_ Param<T> as WorldQuery>::init_fetch(world, component_id, last_change_tick, change_tick)
+        }
     }
 
-    unsafe fn clone_fetch<'w>(fetch: &Self::Fetch<'w>) -> Self::Fetch<'w> {
-        <&'_ Param<T> as WorldQuery>::clone_fetch(fetch)
+    unsafe fn clone_fetch<'w>(ParamFetch{index, inner}: &Self::Fetch<'w>) -> Self::Fetch<'w> {
+        ParamFetch{index: *index, inner: <&'_ Param<T> as WorldQuery>::clone_fetch(inner)}
     }
 
     const IS_DENSE: bool = <&'_ Param<T> as WorldQuery>::IS_DENSE;
@@ -110,36 +126,37 @@ unsafe impl<T: Component> WorldQuery for &Next<T> {
     const IS_ARCHETYPAL: bool = <&'_ Param<T> as WorldQuery>::IS_ARCHETYPAL;
 
     unsafe fn set_archetype<'w>(
-        fetch: &mut Self::Fetch<'w>,
-        (_tick, component_id): &Self::State,
+        ParamFetch{inner, ..}: &mut Self::Fetch<'w>,
+        component_id: &Self::State,
         archetype: &'w bevy_ecs::archetype::Archetype,
         table: &'w bevy_ecs::storage::Table,
     ) {
-        <&'_ Param<T> as WorldQuery>::set_archetype(fetch, component_id, archetype, table);
+        <&'_ Param<T> as WorldQuery>::set_archetype(inner, component_id, archetype, table);
     }
 
     unsafe fn set_table<'w>(
-        fetch: &mut Self::Fetch<'w>, 
-        (_tick, component_id): &Self::State, 
+        ParamFetch{inner, ..}: &mut Self::Fetch<'w>,
+        component_id: &Self::State, 
         table: &'w bevy_ecs::storage::Table
     ) {
-        <&'_ Param<T> as WorldQuery>::set_table(fetch, component_id, table);
+        <&'_ Param<T> as WorldQuery>::set_table(inner, component_id, table);
     }
 
     unsafe fn fetch<'w>(
-        fetch: &mut Self::Fetch<'w>,
+        ParamFetch{index, inner}: &mut Self::Fetch<'w>,
         entity: Entity,
         table_row: bevy_ecs::storage::TableRow,
     ) -> Self::Item<'w> {
-        <&'_ Param<T> as WorldQuery>::fetch(fetch, entity, table_row).0[0].borrow()
+        let param = <&'_ Param<T> as WorldQuery>::fetch(inner, entity, table_row);
+        param.0[*index].borrow()
     }
 
-    fn update_component_access((_tick, component_id): &Self::State, access: &mut FilteredAccess<ComponentId>) {
+    fn update_component_access(component_id: &Self::State, access: &mut FilteredAccess<ComponentId>) {
         <&'_ Param<T> as WorldQuery>::update_component_access(component_id, access);
     }
 
     fn update_archetype_component_access(
-        (_tick, component_id): &Self::State,
+        component_id: &Self::State,
         archetype: &Archetype,
         access: &mut Access<ArchetypeComponentId>,
     ) {
@@ -147,15 +164,16 @@ unsafe impl<T: Component> WorldQuery for &Next<T> {
     }
 
     fn init_state(world: &mut World) -> Self::State {
-        (Tick::new(world.change_tick()), <&'_ Param<T> as WorldQuery>::init_state(world))
+        world.init_resource::<Clock>();
+        <&'_ Param<T> as WorldQuery>::init_state(world)
     }
 
     fn matches_component_set(
-        (_tick, component_id): &Self::State,
+        component_id: &Self::State,
         set_contains_id: &impl Fn(bevy_ecs::component::ComponentId) -> bool,
     ) -> bool {
         <&'_ Param<T> as WorldQuery>::matches_component_set(component_id, set_contains_id)
     }
 }
 
-unsafe impl<T: Component> ReadOnlyWorldQuery for &Next<T> {}
+unsafe impl<T: Component + Clone> ReadOnlyWorldQuery for &Next<T> {}
