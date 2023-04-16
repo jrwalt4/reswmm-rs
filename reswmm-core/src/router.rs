@@ -89,7 +89,6 @@ unsafe impl<T: Component> WorldQuery for &Next<T> {
         last_change_tick: u32,
         change_tick: u32,
     ) -> Self::Fetch<'w> {
-        eprintln!("Last Tick: {last_change_tick}, Current Tick: {change_tick}");
         <&'_ Param<T> as WorldQuery>::init_fetch(world, component_id, last_change_tick, change_tick)
     }
 
