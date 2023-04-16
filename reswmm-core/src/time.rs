@@ -1,6 +1,7 @@
 //! Time utilities and types
 
-pub use chrono::Duration;
+use bevy_ecs::prelude::*;
+pub use chrono::{Duration, NaiveDateTime};
 
 use std::ops::{Add, Sub, AddAssign};
 use std::time::Duration as StdDuration;
@@ -74,4 +75,114 @@ impl Interval {
     pub fn advance(self, by: Duration) -> Self {
         Interval(self.1, self.1 + by)
     }
+}
+
+#[derive(Resource)]
+pub struct Clock {
+    pub simulation: Duration,
+    pub calendar: NaiveDateTime,
+    pub step_count: u64,
+    end: Option<NaiveDateTime>,
+}
+
+impl Clock {
+    pub fn with_start(start: NaiveDateTime) -> Self {
+        Self {
+            simulation: Duration::zero(),
+            calendar: start,
+            end: None,
+            step_count: 0
+        }
+    }
+
+    pub fn with_start_and_end(start: NaiveDateTime, end: NaiveDateTime) -> Self {
+        Self {
+            end: Some(end),
+            ..Self::with_start(start)
+        }
+    }
+
+    pub fn with_start_and_duration(start: NaiveDateTime, duration: Duration) -> Self {
+        Self {
+            end: Some(start + duration),
+            ..Self::with_start(start)
+        }
+    }
+
+    pub(crate) fn advance(&mut self, by: Duration) {
+        let by = match self.end {
+            Some(end) if end > self.calendar + by => end - self.calendar,
+            _ => by,
+        };
+        self.simulation = self.simulation + by;
+        self.calendar += by;
+        self.step_count += 1;
+    }
+}
+
+impl Default for Clock {
+    fn default() -> Self {
+        use std::time::SystemTime;
+
+        Clock::with_start(
+            NaiveDateTime::default()
+                + Duration::from_std(
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap_or_default(),
+                )
+                .unwrap_or(Duration::zero()),
+        )
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub struct StepRequest(Duration);
+
+impl StepRequest {
+    pub fn seconds(seconds: i64) -> Self {
+        Self(Duration::seconds(seconds))
+    }
+
+    pub fn minutes(minutes: i64) -> Self {
+        Self(Duration::minutes(minutes))
+    }
+
+    pub fn hours(hours: i64) -> Self {
+        Self(Duration::hours(hours))
+    }
+}
+
+#[derive(Resource)]
+pub struct ClockSettings {
+    min_step: Duration,
+    max_step: Duration,
+}
+
+impl Default for ClockSettings {
+    fn default() -> Self {
+        ClockSettings {
+            min_step: Duration::seconds(30),
+            max_step: Duration::minutes(60),
+        }
+    }
+}
+
+/// System to control advancing the simulation clock
+/// 
+/// Clock advances either by the default amount in the [`ClockSettings`] or
+/// by requesting a specific step by sending a [`StepRequest`] event.
+pub(crate) fn clock_controller(
+    settings: Res<ClockSettings>,
+    mut clock: ResMut<Clock>,
+    mut requests: EventReader<StepRequest>,
+) {
+    let next_step = requests
+        .iter()
+        .map(|StepRequest(step)| step)
+        .min()
+        .copied()
+        .clamp(Some(settings.min_step), Some(settings.max_step))
+        .unwrap();
+    clock.advance(next_step);
 }

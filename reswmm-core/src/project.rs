@@ -1,7 +1,11 @@
 
 use crate::{
     element::{Element, UID},
-    router::Router
+    router::{
+        Router,
+        PreStepSet, StepSet, PostStepSet
+    },
+    time::{Clock, ClockSettings, StepRequest, clock_controller}
 };
 
 use bevy_ecs::{
@@ -39,9 +43,23 @@ pub struct Project {
 }
 
 impl Project {
-    /// Create a new Project using [`default`](std::default::Default::default).
-    pub fn new() -> Self {
+    /// Create an empty Project using [`default`](std::default::Default::default).
+    pub fn empty() -> Self {
         Default::default()
+    }
+
+    /// Create a project with initialization for typical use
+    pub fn new() -> Self {
+        let mut prj = Self::empty();
+        prj.schedule
+            .configure_set(PreStepSet)
+            .configure_set(StepSet.after(PreStepSet))
+            .configure_set(PostStepSet.after(StepSet))
+            .add_system(clock_controller.in_set(PostStepSet));
+        prj.model.init_resource::<Clock>();
+        prj.model.init_resource::<ClockSettings>();
+        prj.model.init_resource::<Events<StepRequest>>();
+        prj
     }
 
     /// Add an element to the model. Elements are [bevy Entities](bevy_ecs::entity::Entity) with a 

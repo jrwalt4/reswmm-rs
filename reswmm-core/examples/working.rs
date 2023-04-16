@@ -1,6 +1,7 @@
 use reswmm_core::{
     project::Project,
-    router::*
+    router::*,
+    time::Clock
 };
 
 use bevy_ecs::prelude::*;
@@ -11,13 +12,15 @@ struct Length(f32);
 #[derive(Component, Debug)]
 struct Depth(f32);
 
-fn depth_router1(query: Query<(&Length, &Next<Depth>)>) {
+fn depth_router1(query: Query<(&Length, &Next<Depth>)>, time: Res<Clock>) {
+    eprintln!("Step: {:?}, Time: {:?}", time.step_count, time.simulation);
     for (Length(l), depth) in &query {
         eprintln!("1 - Length: {l}, Depth: {:?}", *depth);
     }
 }
 
-fn depth_router2(query: Query<(&Length, &Next<Depth>)>) {
+fn depth_router2(query: Query<(&Length, &Next<Depth>)>, time: Res<Clock>) {
+    eprintln!("Step: {:?}, Time: {:?}", time.step_count, time.simulation);
     for (Length(l), depth) in &query {
         eprintln!("2 - Length: {l}, Depth: {:?}", *depth);
     }

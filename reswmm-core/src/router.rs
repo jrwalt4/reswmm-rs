@@ -35,6 +35,15 @@ pub trait Router<M>: IntoSystem<(), (), M> + IntoSystemConfig<M> {
 
 impl<M, F: IntoSystem<(), (), M> + IntoSystemConfig<M>> Router<M> for F {}
 
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, SystemSet)]
+pub struct PreStepSet;
+
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, SystemSet)]
+pub struct StepSet;
+
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, SystemSet)]
+pub struct PostStepSet;
+
 #[derive(Resource, Default)]
 pub struct Nodes(HashMap<Entity, UID>);
 
