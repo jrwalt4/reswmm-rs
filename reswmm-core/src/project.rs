@@ -108,7 +108,12 @@ impl Project {
                 }                
             }
         }
-        self.schedule.add_system(router);
+        self.schedule.add_system(router.in_set(StepSet));
+        self
+    }
+
+    pub fn add_system<M, S: IntoSystemConfig<M>>(&mut self, system: S) -> &mut Self {
+        self.schedule.add_system(system);
         self
     }
 
