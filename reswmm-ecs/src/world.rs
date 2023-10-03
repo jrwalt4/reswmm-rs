@@ -3,19 +3,23 @@
 use std::collections::HashMap;
 
 use crate::{
-    component::{Archetype, ArchetypeId},
-    entity::{EntityId, EntityManager}
+    component::{ArchetypeId, ArchetypeManager},
+    entity::{EntityId, EntityManager},
 };
 
 #[derive(Default)]
 pub struct World {
     entities: EntityManager,
     entity_index: HashMap<EntityId, ArchetypeId>,
-    archetypes: HashMap<ArchetypeId, Archetype>,
+    archetypes: ArchetypeManager
 }
 
 impl World {
     pub fn new() -> Self {
         Default::default()
+    }
+
+    pub(crate) fn archetypes(&self) -> &ArchetypeManager {
+        &self.archetypes
     }
 }

@@ -11,6 +11,8 @@ use crate::entity::{Entity, EntityId};
 
 pub trait Component: Send + Sync + 'static {}
 
+impl Component for () {}
+
 pub type ComponentId = TypeId;
 
 pub(crate) struct ComponentInfo {
@@ -18,7 +20,7 @@ pub(crate) struct ComponentInfo {
     layout: Layout,
     drop: Option<unsafe fn(*mut u8)>,
     #[cfg(debug_assertions)]
-    name: &'static str
+    name: &'static str,
 }
 
 impl ComponentInfo {
@@ -31,7 +33,7 @@ impl ComponentInfo {
             layout: Layout::new::<C>(),
             drop: needs_drop::<C>().then_some(drop_internal::<C> as _),
             #[cfg(debug_assertions)]
-            name: type_name::<C>()
+            name: type_name::<C>(),
         }
     }
 }
@@ -44,31 +46,23 @@ struct ComponentColumn {
 impl ComponentColumn {
     fn new(info: ComponentInfo) -> Self {
         let data = unsafe {
-            // An aligned 'dangling' pointer. 
-            // Replace with `Layout::dangling` when it stabilizes. 
+            // An aligned 'dangling' pointer.
+            // Replace with `Layout::dangling` when it stabilizes.
             NonNull::new_unchecked(info.layout.align() as *mut u8)
         };
-        Self {
-            info,
-            data,
-        }
+        Self { info, data }
     }
 
     fn with_capacity(info: ComponentInfo, capacity: usize) -> Option<Self> {
         if capacity == 0 {
-            return Some(Self::new(info))
+            return Some(Self::new(info));
         }
         let mem = unsafe {
-            alloc(
-                Layout::from_size_align(
-                    info.layout.size() * capacity,
-                    info.layout.align()
-                ).ok()?
-            )
+            alloc(Layout::from_size_align(info.layout.size() * capacity, info.layout.align()).ok()?)
         };
         Some(Self {
             info,
-            data: NonNull::new(mem)?
+            data: NonNull::new(mem)?,
         })
     }
 
@@ -95,11 +89,21 @@ pub struct Archetype {
 }
 
 impl Archetype {
-    fn with_capacity(id: ArchetypeId, components: impl IntoIterator<Item = ComponentInfo>, capacity: usize) -> Self {
+    fn with_capacity(
+        id: ArchetypeId,
+        components: impl IntoIterator<Item = ComponentInfo>,
+        capacity: usize,
+    ) -> Self {
         let mut component_info = components.into_iter().collect::<Vec<ComponentInfo>>();
         component_info.sort_by_key(|info| info.id);
-        let (component_ids, components) = component_info.into_iter()
-            .map(|info| (info.id, ComponentColumn::with_capacity(info, capacity).unwrap()))
+        let (component_ids, components) = component_info
+            .into_iter()
+            .map(|info| {
+                (
+                    info.id,
+                    ComponentColumn::with_capacity(info, capacity).unwrap(),
+                )
+            })
             .unzip();
         Self {
             id,
@@ -131,11 +135,15 @@ impl Archetype {
     }
 
     fn get_column_mut<C: Component>(&mut self) -> Option<&mut ComponentColumn> {
-        self.get_column_index::<C>().ok().map(|index| &mut self.components[index])
+        self.get_column_index::<C>()
+            .ok()
+            .map(|index| &mut self.components[index])
     }
 
     fn get_column_by_id(&self, id: ComponentId) -> Option<&ComponentColumn> {
-        self.get_column_index_by_id(id).ok().map(|index| &self.components[index])
+        self.get_column_index_by_id(id)
+            .ok()
+            .map(|index| &self.components[index])
     }
 
     fn get_column_index<C: Component>(&self) -> Result<usize, usize> {
@@ -143,7 +151,8 @@ impl Archetype {
     }
 
     fn get_column_index_by_id(&self, id: ComponentId) -> Result<usize, usize> {
-        self.components.binary_search_by_key(&id, |data| data.info.id)
+        self.components
+            .binary_search_by_key(&id, |data| data.info.id)
     }
 
     fn insert(&mut self, entity: Entity) -> ArchetypeRowMut<'_> {
@@ -153,8 +162,6 @@ impl Archetype {
     }
 }
 
-
-
 pub(crate) struct ArchetypeRow<'a> {
     archetype: &'a Archetype,
     index: usize,
@@ -163,10 +170,7 @@ pub(crate) struct ArchetypeRow<'a> {
 impl<'r> ArchetypeRow<'r> {
     fn new<'a: 'r>(archetype: &'a Archetype, index: usize) -> Self {
         assert!(index < archetype.size());
-        Self {
-            archetype,
-            index
-        }
+        Self { archetype, index }
     }
 
     unsafe fn read<C: Component>(&self) -> Option<&C> {
@@ -183,10 +187,7 @@ struct ArchetypeRowMut<'r> {
 impl<'r> ArchetypeRowMut<'r> {
     fn new<'a: 'r>(archetype: &'a mut Archetype, index: usize) -> Self {
         assert!(index < archetype.size());
-        Self {
-            archetype,
-            index
-        }
+        Self { archetype, index }
     }
 
     unsafe fn read<C: Component>(&self) -> Option<&C> {
@@ -200,7 +201,6 @@ impl<'r> ArchetypeRowMut<'r> {
         ptr.write(value);
         ptr.as_ref()
     }
-
 }
 
 /// A set of [`Archetype`]'s
@@ -208,40 +208,57 @@ pub(crate) struct ArchetypeManager {
     archetypes: HashMap<ArchetypeId, Archetype>,
     next: AtomicU32,
     index: HashMap<Vec<ComponentId>, ArchetypeId>,
+    component_index: HashMap<ComponentId, Vec<ArchetypeId>>,
+}
+
+impl Default for ArchetypeManager {
+    /// Had default empty Archetype of `[()]`
+    fn default() -> Self {
+        let unit_comp = ComponentInfo::of::<()>();
+        let unit_comp_id = unit_comp.id;
+        let unit_arch_id = ArchetypeId(0);
+        let unit_arch = Archetype::new(unit_arch_id, vec![unit_comp]);
+        Self {
+            archetypes: HashMap::from([(unit_arch_id, unit_arch)]),
+            next: AtomicU32::new(1),
+            index: HashMap::from([(vec![unit_comp_id], unit_arch_id)]),
+            component_index: HashMap::from([(unit_comp_id, vec![unit_arch_id])]),
+        }
+    }
 }
 
 impl ArchetypeManager {
     pub(crate) fn new() -> Self {
-        Self {
-            archetypes: Default::default(),
-            next: AtomicU32::new(1),
-            index: Default::default()
-        }
+        Default::default()
     }
 
-    pub(crate) fn create(&mut self, components: impl IntoIterator<Item=ComponentInfo>) -> Option<ArchetypeId> {
+    pub(crate) fn create(
+        &mut self,
+        components: impl IntoIterator<Item = ComponentInfo>,
+    ) -> Option<ArchetypeId> {
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         // We start at 1, so if we've wrapped back around to 0 then we could have duplicate id's
         if id == 0 {
             panic!("Too many Archetypes");
         }
         let id = ArchetypeId(id);
-        self.archetypes.insert(id, Archetype::new(id, components)).map(|arch| {
-            self.index.insert(arch.component_ids, arch.id);
-            arch.id
-        })
+        self.archetypes
+            .insert(id, Archetype::new(id, components))
+            .map(|arch| {
+                self.index.insert(arch.component_ids, arch.id);
+                arch.id
+            })
+    }
+
+    pub(crate) fn query_component<C: Component>(&self) -> Option<&[ArchetypeId]> {
+        self.component_index.get(&TypeId::of::<C>()).map(|v| v.as_slice())
     }
 }
 
 #[cfg(test)]
 mod test {
+    use super::{Archetype, ArchetypeId, Component, ComponentInfo};
     use crate::entity::Entity;
-    use super::{
-        Archetype,
-        ArchetypeId,
-        Component,
-        ComponentInfo,
-    };
 
     #[test]
     fn archetype() {
@@ -253,10 +270,7 @@ mod test {
         struct Flow(f32);
         impl Component for Flow {}
 
-        let comps = vec![
-            ComponentInfo::of::<Length>(),
-            ComponentInfo::of::<Flow>(),
-        ];
+        let comps = vec![ComponentInfo::of::<Length>(), ComponentInfo::of::<Flow>()];
         let mut arch = Archetype::with_capacity(ArchetypeId(1), comps, 4);
 
         unsafe {
