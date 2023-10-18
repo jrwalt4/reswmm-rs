@@ -99,10 +99,14 @@ impl Archetype {
         let (component_ids, components) = component_info
             .into_iter()
             .map(|info| {
-                (
-                    info.id,
-                    ComponentColumn::with_capacity(info, capacity).unwrap(),
-                )
+                let id = info.id;
+                let name = info.name;
+                let col_opt = ComponentColumn::with_capacity(info, capacity);
+                #[cfg(debug_assertions)]
+                let col = col_opt.expect(name);
+                #[cfg(not(debug_assertions))]
+                let col = col_opt.unwrap();
+                (id, col)
             })
             .unzip();
         Self {
@@ -155,10 +159,34 @@ impl Archetype {
             .binary_search_by_key(&id, |data| data.info.id)
     }
 
+    // Safety: May not actually be unsafe since we are keeping track of the
+    // length and ensuring that C matches what is stored in the corresponding Column
+    unsafe fn get_column_as_slice<C: Component>(&self) -> Option<&[C]> {
+        self.get_column::<C>()
+            .map(|col| std::slice::from_raw_parts(col.as_ptr(), self.size()))
+    }
+
     fn insert(&mut self, entity: Entity) -> ArchetypeRowMut<'_> {
         let new_index = self.entities.len();
         self.entities.push(entity.id());
         ArchetypeRowMut::new(self, new_index)
+    }
+}
+
+impl Drop for Archetype {
+    fn drop(&mut self) {
+        let size = self.size();
+        for col in &mut self.components {
+            if let Some(d) = col.info.drop {
+                let mut data = col.data.as_ptr();
+                for _i in 0..size {
+                    unsafe {
+                        d(data);
+                        data = data.add(col.info.layout.size());
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -174,8 +202,7 @@ impl<'r> ArchetypeRow<'r> {
     }
 
     unsafe fn read<C: Component>(&self) -> Option<&C> {
-        let data = self.archetype.get_column::<C>()?;
-        data.as_ptr::<C>().add(self.index).as_ref()
+        Some(&self.archetype.get_column_as_slice::<C>()?[self.index])
     }
 }
 
@@ -191,8 +218,7 @@ impl<'r> ArchetypeRowMut<'r> {
     }
 
     unsafe fn read<C: Component>(&self) -> Option<&C> {
-        let data = self.archetype.get_column::<C>()?;
-        data.as_ptr::<C>().add(self.index).as_ref()
+        Some(&self.archetype.get_column_as_slice::<C>()?[self.index])
     }
 
     unsafe fn write<C: Component>(&mut self, value: C) -> Option<&C> {
@@ -245,13 +271,15 @@ impl ArchetypeManager {
         self.archetypes
             .insert(id, Archetype::new(id, components))
             .map(|arch| {
-                self.index.insert(arch.component_ids, arch.id);
+                self.index.insert(arch.component_ids.clone(), arch.id);
                 arch.id
             })
     }
 
     pub(crate) fn query_component<C: Component>(&self) -> Option<&[ArchetypeId]> {
-        self.component_index.get(&TypeId::of::<C>()).map(|v| v.as_slice())
+        self.component_index
+            .get(&TypeId::of::<C>())
+            .map(|v| v.as_slice())
     }
 }
 
@@ -262,13 +290,29 @@ mod test {
 
     #[test]
     fn archetype() {
-        #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+        static mut LENGTH_DROP_COUNT: u32 = 0;
+        #[derive(Clone, PartialEq, PartialOrd, Debug)]
         struct Length(f32);
         impl Component for Length {}
+        impl Drop for Length {
+            fn drop(&mut self) {
+                unsafe {
+                    LENGTH_DROP_COUNT += 1;
+                };
+            }
+        }
 
-        #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+        static mut FLOW_DROP_COUNT: u32 = 0;
+        #[derive(Clone, PartialEq, PartialOrd, Debug)]
         struct Flow(f32);
         impl Component for Flow {}
+        impl Drop for Flow {
+            fn drop(&mut self) {
+                unsafe {
+                    FLOW_DROP_COUNT += 1;
+                };
+            }
+        }
 
         let comps = vec![ComponentInfo::of::<Length>(), ComponentInfo::of::<Flow>()];
         let mut arch = Archetype::with_capacity(ArchetypeId(1), comps, 4);
@@ -278,8 +322,12 @@ mod test {
             row.write(Length(2.0));
             row.write(Flow(3.0));
 
-            assert_eq!(row.read::<Length>().copied().unwrap(), Length(2.0));
-            assert_eq!(row.read::<Flow>().copied().unwrap(), Flow(3.0));
+            assert_eq!(row.read::<Length>().unwrap(), &Length(2.0));
+            assert_eq!(row.read::<Flow>().unwrap(), &Flow(3.0));
         }
+        drop(arch);
+        // should drop the value inside the Arch as well as the temporary used for comparison.
+        unsafe { assert_eq!(LENGTH_DROP_COUNT, 2) };
+        unsafe { assert_eq!(FLOW_DROP_COUNT, 2) };
     }
 }

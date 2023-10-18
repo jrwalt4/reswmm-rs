@@ -11,7 +11,7 @@ use crate::{
 pub struct World {
     entities: EntityManager,
     entity_index: HashMap<EntityId, ArchetypeId>,
-    archetypes: ArchetypeManager
+    archetypes: ArchetypeManager,
 }
 
 impl World {

@@ -8,14 +8,17 @@ use std::{
     fmt::Debug,
     mem::transmute,
     ops::Deref,
-    sync::{Arc, atomic::{AtomicBool, Ordering}, Mutex as StdMutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex as StdMutex,
+    },
 };
 
 use futures::{
     executor::block_on,
-    future::{Future, poll_fn},
+    future::{poll_fn, Future},
     join,
-    task::*, 
+    task::*,
 };
 
 trait Component: Send + Sync + 'static {}
@@ -76,35 +79,33 @@ impl ComponentStore {
         Self::default()
     }
 
-    fn get_component<C: Component>(&self) -> Option<impl Future<Output = Option<ComponentRef<'_, C>>>> {
+    fn get_component<C: Component>(
+        &self,
+    ) -> Option<impl Future<Output = Option<ComponentRef<'_, C>>>> {
         let comp = self.get_component_inner::<C>()?;
 
-        let fut = poll_fn(|cx: &mut Context<'_>| -> Poll<Option<ComponentRef<'_, C>>> {
-            if comp.complete.load(Ordering::Acquire) {
-                let result = unsafe {
-                    (*comp.value.get()).as_ref().map(Into::into)
-                };
-                return Poll::Ready(result);
-            }
-            match self.watchers.lock() {
-                Ok(mut lock) => {
-                    let waker = cx.waker();
-                    lock.entry(TypeId::of::<C>())
-                        .and_modify(|v| {
-                            if !v.iter().any(|w| w.will_wake(waker)) {
-                                v.push(waker.clone())
-                            }
-                        })
-                        .or_insert_with(|| {
-                            vec![waker.clone()]
-                        });
-                    Poll::Pending
-                },
-                Err(_) => {
-                    Poll::Ready(None)
+        let fut = poll_fn(
+            |cx: &mut Context<'_>| -> Poll<Option<ComponentRef<'_, C>>> {
+                if comp.complete.load(Ordering::Acquire) {
+                    let result = unsafe { (*comp.value.get()).as_ref().map(Into::into) };
+                    return Poll::Ready(result);
                 }
-            }
-        });
+                match self.watchers.lock() {
+                    Ok(mut lock) => {
+                        let waker = cx.waker();
+                        lock.entry(TypeId::of::<C>())
+                            .and_modify(|v| {
+                                if !v.iter().any(|w| w.will_wake(waker)) {
+                                    v.push(waker.clone())
+                                }
+                            })
+                            .or_insert_with(|| vec![waker.clone()]);
+                        Poll::Pending
+                    }
+                    Err(_) => Poll::Ready(None),
+                }
+            },
+        );
 
         Some(fut)
     }
@@ -121,11 +122,13 @@ impl ComponentStore {
                         let orig = inner_opt.take();
                         *inner_opt = other.take();
                         // mark as `complete` and alert watchers
-                        // in reality should use a `compare_exchange` to make sure 
+                        // in reality should use a `compare_exchange` to make sure
                         // noone else tried to set after our check, but in this example we know
                         // there's only one system writing to each component.
                         comp.complete.store(true, Ordering::Release);
-                        if let Some(wakers) = self.watchers.lock().unwrap().get_mut(&TypeId::of::<C>()) {
+                        if let Some(wakers) =
+                            self.watchers.lock().unwrap().get_mut(&TypeId::of::<C>())
+                        {
                             for waker in wakers.drain(..) {
                                 waker.wake();
                             }
@@ -147,13 +150,19 @@ impl ComponentStore {
         let AREA_ID: TypeId = TypeId::of::<Area>();
         let c_id = TypeId::of::<C>();
         if c_id == LENGTH_ID {
-            unsafe { return Some(transmute(&self.length)); }
+            unsafe {
+                return Some(transmute(&self.length));
+            }
         }
         if c_id == WIDTH_ID {
-            unsafe { return Some(transmute(&self.width)); }
+            unsafe {
+                return Some(transmute(&self.width));
+            }
         }
         if c_id == AREA_ID {
-            unsafe { return Some(transmute(&self.area)); }
+            unsafe {
+                return Some(transmute(&self.area));
+            }
         }
         None
     }
@@ -163,7 +172,7 @@ impl<C> Default for ComponentAccess<C> {
     fn default() -> Self {
         Self {
             complete: AtomicBool::default(),
-            value: UnsafeCell::new(None)
+            value: UnsafeCell::new(None),
         }
     }
 }
@@ -182,7 +191,7 @@ async fn solve_width(store: &ComponentStore) -> Result<Option<Width>, Option<Wid
     result
 }
 
-async fn solve_area(store: &ComponentStore) -> Result<Option<Area>, Option<Area>>{
+async fn solve_area(store: &ComponentStore) -> Result<Option<Area>, Option<Area>> {
     println!("Getting length and width");
     let (length, width) = join!(
         store.get_component::<Length>().unwrap(),
@@ -197,7 +206,7 @@ async fn solve_area(store: &ComponentStore) -> Result<Option<Area>, Option<Area>
 fn main() {
     let store = ComponentStore::new();
 
-    // solve out of order to show that area will wait for length and width to be set. 
+    // solve out of order to show that area will wait for length and width to be set.
     let _ = block_on(async {
         join!(
             solve_area(&store),
@@ -207,11 +216,7 @@ fn main() {
     });
 
     // now get the results
-    let (
-        length,
-        width,
-        area,
-    ) = block_on(async {
+    let (length, width, area) = block_on(async {
         join!(
             store.get_component::<Length>().unwrap(),
             store.get_component::<Width>().unwrap(),

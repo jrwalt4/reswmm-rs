@@ -1,6 +1,6 @@
 //! Systems that act on the world
-//! 
-//! Systems are executed concurrently through async [`Future`]'s and request 
+//!
+//! Systems are executed concurrently through async [`Future`]'s and request
 //! access to components through a [`SystemContext`].
 
 use std::marker::PhantomData;
@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use futures::task::Context;
 
 use crate::{
-    world::World,
     component::{ArchetypeId, Component},
+    world::World,
 };
 
 #[async_trait]
@@ -21,33 +21,38 @@ pub trait System: Send + Sync + 'static {
 /// Execution context for a system
 pub struct SystemContext<'a> {
     world: &'a World,
-    inner: Context<'a>
+    inner: Context<'a>,
 }
 
 pub type SystemResult = Result<(), SystemError>;
 
 pub enum SystemError {
     LogicError,
-    MaxIterations
+    MaxIterations,
 }
 
 impl<'a> SystemContext<'a> {
     async fn query<C: Component>(&self) -> QueryResult<'a, C> {
-        let query = Query::new(self.world.archetypes().query_component::<C>().ok_or(QueryError::Empty)?);
+        let query = Query::new(
+            self.world
+                .archetypes()
+                .query_component::<C>()
+                .ok_or(QueryError::Empty)?,
+        );
         Ok(query)
     }
 }
 
 pub struct Query<'a, C> {
     archetypes: Vec<&'a ArchetypeId>,
-    component: PhantomData<&'a C>
+    component: PhantomData<&'a C>,
 }
 
 impl<'a, C: Component> Query<'a, C> {
     fn new(archetype_iter: impl IntoIterator<Item = &'a ArchetypeId>) -> Self {
         Self {
             archetypes: Vec::from_iter(archetype_iter.into_iter()),
-            component: PhantomData
+            component: PhantomData,
         }
     }
 }
@@ -55,5 +60,5 @@ impl<'a, C: Component> Query<'a, C> {
 pub type QueryResult<'a, C> = Result<Query<'a, C>, QueryError>;
 
 pub enum QueryError {
-    Empty
+    Empty,
 }
