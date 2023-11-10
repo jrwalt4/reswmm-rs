@@ -1,5 +1,5 @@
 use std::{
-    alloc::{alloc, dealloc, Layout},
+    alloc::{alloc, dealloc, realloc, Layout},
     any::{type_name, TypeId},
     collections::HashMap,
     mem::needs_drop,
@@ -9,7 +9,7 @@ use std::{
 
 use crate::entity::{Entity, EntityId};
 
-/// A type that can be stored as part of an [`Entity`]. 
+/// A type that can be stored as part of an [`Entity`].
 pub trait Component: Send + Sync + 'static {}
 
 impl Component for () {}
@@ -19,7 +19,7 @@ pub(crate) trait Bundle: Send + Sync + 'static {
     fn info() -> Vec<ComponentInfo>;
 
     fn id() -> Vec<ComponentId> {
-        Self::info().into_iter().map(| info | info.id).collect()
+        Self::info().into_iter().map(|info| info.id).collect()
     }
 }
 
@@ -125,7 +125,6 @@ pub struct Archetype {
 }
 
 impl Archetype {
-
     fn from_info_with_capacity(
         id: ArchetypeId,
         components: impl IntoIterator<Item = ComponentInfo>,
@@ -204,9 +203,49 @@ impl Archetype {
     }
 
     fn insert(&mut self, entity: Entity) -> ArchetypeRowMut<'_> {
-        let new_index = self.entities.len();
+        let new_index = self.len();
+        if new_index + 1 > self.capacity >> 1 {
+            self.grow();
+        }
         self.entities.push(entity.id());
         ArchetypeRowMut::new(self, new_index)
+    }
+
+    fn grow(&mut self) {
+        let old_capacity = self.capacity;
+        let new_capacity = std::cmp::max(old_capacity * 2, 8); // reserve at least 8 places
+        
+        for comp in &mut self.components {
+            let comp_layout = comp.info.layout;
+            let new_size = comp_layout.size() * new_capacity;
+            match old_capacity > 0 {
+                true => {
+                    // use realloc
+                    let old_layout = unsafe {
+                        Layout::from_size_align_unchecked(
+                            comp_layout.size() * old_capacity,
+                            comp_layout.align()
+                        )
+                    };
+                    let ptr = unsafe {
+                        realloc(comp.data.as_ptr(), old_layout, new_size)
+                    };
+                    comp.data = NonNull::new(ptr).unwrap();
+                },
+                false => {
+                    // use alloc
+                    let new_layout = Layout::from_size_align(
+                        new_size,
+                        comp_layout.align()
+                    ).unwrap();
+                    let ptr = unsafe {
+                        alloc(new_layout)
+                    };
+                    comp.data = NonNull::new(ptr).unwrap();
+                }
+            }
+        }
+        self.capacity = new_capacity;
     }
 }
 
@@ -226,13 +265,13 @@ impl Drop for Archetype {
             }
             // release memory
             if col.info.layout.size() > 0 {
-                unsafe { 
+                unsafe {
                     dealloc(
-                        col.data.as_mut(), 
+                        col.data.as_mut(),
                         Layout::from_size_align_unchecked(
-                            col.info.layout.size() * self.capacity, 
-                            col.info.layout.align()
-                        )
+                            col.info.layout.size() * self.capacity,
+                            col.info.layout.align(),
+                        ),
                     );
                 }
             }
@@ -274,6 +313,7 @@ impl<'r> ArchetypeRowMut<'r> {
     unsafe fn write<C: Component>(&mut self, value: C) -> Option<&C> {
         let column = self.archetype.get_column_mut::<C>()?;
         let ptr = column.as_ptr_mut::<C>().add(self.index);
+        println!("Writing to index: {}, ptr: {:p}", self.index, ptr);
         ptr.write(value);
         ptr.as_ref()
     }
@@ -319,21 +359,23 @@ impl ArchetypeManager {
 
     pub(crate) fn get_one<B: Bundle>(&self) -> Option<&Archetype> {
         let ids = B::id();
-        self.index.get(&ids).and_then(|arch_id| self.archetypes.get(arch_id))
+        self.index
+            .get(&ids)
+            .and_then(|arch_id| self.archetypes.get(arch_id))
     }
 
-    pub(crate) fn get_or_insert<B: Bundle>(&mut self) -> &Archetype {
+    pub(crate) fn get_or_insert<B: Bundle>(&mut self) -> &mut Archetype {
         self.get_or_insert_with_info(B::info())
     }
 
     pub(crate) fn get_or_insert_with_info(
         &mut self,
         iter: impl IntoIterator<Item = ComponentInfo>,
-    ) -> &Archetype {
+    ) -> &mut Archetype {
         let info: Vec<ComponentInfo> = iter.into_iter().collect();
         let ids: Vec<ComponentId> = info.iter().map(|info| info.id).collect();
         if let Some(arch) = self.index.get(&ids) {
-            return self.archetypes.get(arch).unwrap();
+            return self.archetypes.get_mut(arch).unwrap();
         }
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         // We start at 1, so if we've wrapped back around to 0 then we could have duplicate id's
@@ -342,7 +384,8 @@ impl ArchetypeManager {
         }
         let arch_id = ArchetypeId(id);
 
-        let arch = self.archetypes
+        let arch = self
+            .archetypes
             .entry(arch_id)
             .or_insert_with_key(|arch_id| Archetype::from_info(*arch_id, info));
         for comp_id in &ids {
@@ -364,51 +407,50 @@ impl ArchetypeManager {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::{Archetype, ArchetypeId, Component, ComponentInfo};
-    use crate::entity::Entity;
-
-    #[test]
-    fn archetype() {
-        static mut LENGTH_DROP_COUNT: u32 = 0;
-        #[derive(Clone, PartialEq, PartialOrd, Debug)]
-        struct Length(f32);
-        impl Component for Length {}
-        impl Drop for Length {
-            fn drop(&mut self) {
-                unsafe {
-                    LENGTH_DROP_COUNT += 1;
-                };
-            }
+#[test]
+fn archetype() {
+    static mut LENGTH_DROP_COUNT: u32 = 0;
+    #[derive(Clone, PartialEq, PartialOrd, Debug)]
+    struct Length(f32);
+    impl Component for Length {}
+    impl Drop for Length {
+        fn drop(&mut self) {
+            unsafe {
+                LENGTH_DROP_COUNT += 1;
+            };
         }
-
-        static mut FLOW_DROP_COUNT: u32 = 0;
-        #[derive(Clone, PartialEq, PartialOrd, Debug)]
-        struct Flow(f32);
-        impl Component for Flow {}
-        impl Drop for Flow {
-            fn drop(&mut self) {
-                unsafe {
-                    FLOW_DROP_COUNT += 1;
-                };
-            }
-        }
-
-        let comps = vec![ComponentInfo::of::<Length>(), ComponentInfo::of::<Flow>()];
-        let mut arch = Archetype::from_info_with_capacity(ArchetypeId(1), comps, 4);
-
-        unsafe {
-            let mut row = arch.insert(Entity::with_id(1));
-            row.write(Length(2.0));
-            row.write(Flow(3.0));
-
-            assert_eq!(row.read::<Length>().unwrap(), &Length(2.0));
-            assert_eq!(row.read::<Flow>().unwrap(), &Flow(3.0));
-        }
-        drop(arch);
-        // should drop the value inside the Arch as well as the temporary used for comparison.
-        unsafe { assert_eq!(LENGTH_DROP_COUNT, 2) };
-        unsafe { assert_eq!(FLOW_DROP_COUNT, 2) };
     }
+
+    static mut FLOW_DROP_COUNT: u32 = 0;
+    #[derive(Clone, PartialEq, PartialOrd, Debug)]
+    struct Flow(f32);
+    impl Component for Flow {}
+    impl Drop for Flow {
+        fn drop(&mut self) {
+            unsafe {
+                FLOW_DROP_COUNT += 1;
+            };
+        }
+    }
+
+    let mut arch_man = ArchetypeManager::new();
+    let arch = arch_man.get_or_insert::<(Length, Flow)>();
+
+    unsafe {
+        println!("Creating arch row");
+        let mut row = arch.insert(Entity::with_id(1));
+        println!("Writing Length");
+        row.write(Length(2.0));
+        println!("Writing Flow");
+        row.write(Flow(3.0));
+
+        println!("Asserts");
+        assert_eq!(row.read::<Length>().unwrap(), &Length(2.0));
+        assert_eq!(row.read::<Flow>().unwrap(), &Flow(3.0));
+    }
+    println!("Dropping");
+    drop(arch_man);
+    // should drop the value inside the Arch as well as the temporary used for comparison.
+    unsafe { assert_eq!(LENGTH_DROP_COUNT, 2) };
+    unsafe { assert_eq!(FLOW_DROP_COUNT, 2) };
 }
