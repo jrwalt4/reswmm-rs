@@ -1,20 +1,14 @@
 
 use crate::{
     element::{Element, UID},
-    router::{
-        Router,
-        PreStepSet, StepSet, PostStepSet
-    },
+    router::{InitSchedule, PreStepSet, StepSet, PostStepSet, Variable, variable_advance_system, variable_init_next},
     time::{Clock, ClockSettings, StepRequest, clock_controller}
 };
 
 use bevy_ecs::{
-    component::ComponentId,
-    prelude::*, 
+    prelude::*,
     world::EntityMut
 };
-
-use std::collections::HashMap;
 
 /// Container for elements and routers that makeup a simulation.
 /// Functions like a [`App`](bevy_app::app::App).
@@ -39,23 +33,20 @@ use std::collections::HashMap;
 pub struct Project {
     model: World,
     schedule: Schedule,
-    graph: HashMap<ComponentId, Vec<ComponentId>>,
+    //graph: HashMap<ComponentId, Vec<ComponentId>>,
+    init_schedule: Option<Schedule>,
+    step_schedule: Schedule,
 }
 
 impl Project {
-    /// Create an empty Project using [`default`](std::default::Default::default).
-    pub fn empty() -> Self {
-        Default::default()
-    }
-
     /// Create a project with initialization for typical use
     pub fn new() -> Self {
-        let mut prj = Self::empty();
+        let mut prj = Self::default();
         prj.schedule
-            .configure_set(PreStepSet)
-            .configure_set(StepSet.after(PreStepSet))
-            .configure_set(PostStepSet.after(StepSet))
-            .add_system(clock_controller.in_set(PostStepSet));
+            .configure_sets(PreStepSet)
+            .configure_sets(StepSet.after(PreStepSet))
+            .configure_sets(PostStepSet.after(StepSet))
+            .add_systems(clock_controller.in_set(PostStepSet));
         prj.model.init_resource::<Clock>();
         prj.model.init_resource::<ClockSettings>();
         prj.model.init_resource::<Events<StepRequest>>();
@@ -81,12 +72,20 @@ impl Project {
     /// 
     /// ```
     pub fn add_element<I: Into<UID>, S:ToString, P: Bundle>(&mut self, uid: I, name: S, props: P) -> EntityMut {
-        self.model.spawn((Element::new(uid, name), props))
+        self.model.spawn((Element::new(uid, name), props)).into()
+    }
+
+    pub fn register_variable<T: Variable>(&mut self) -> &mut Self {
+
+        self.init_schedule.get_or_insert_with(|| Schedule::new(InitSchedule)).add_systems(IntoSystem::into_system(variable_init_next::<T>));
+        self.step_schedule.add_systems(IntoSystem::into_system(variable_advance_system::<T>));
+        self
     }
 
     /// Add a [`Router`] to the [`Project`].
-    pub fn add_router<M, R: Router<M>>(&mut self, router: R) -> &mut Self {
-        let mut router = router.into_system();
+    pub fn add_router<M, R: IntoSystem<(), (), M>>(&mut self, router: R) -> &mut Self {
+        /* 
+        let mut router = IntoSystem::into_system(router);
         {
             router.initialize(&mut self.model);
         }
@@ -108,17 +107,25 @@ impl Project {
                 }                
             }
         }
-        self.schedule.add_system(router.in_set(StepSet));
+        // */
+        self.schedule.add_systems(router.in_set(StepSet));
         self
     }
 
-    pub fn add_system<M, S: IntoSystemConfig<M>>(&mut self, system: S) -> &mut Self {
-        self.schedule.add_system(system);
+    pub fn add_system<M, S: IntoSystemConfigs<M>>(&mut self, system: S) -> &mut Self {
+        self.schedule.add_systems(system);
         self
     }
 
     /// Run this [Project].
     pub fn run(&mut self) {
+        // only run the init_schedule once, leave None in its place. 
+        if let Some(mut init) = self.init_schedule.take() {
+            self.schedule.initialize(&mut self.model).unwrap();
+            init.run(&mut self.model);
+            init.apply_deferred(&mut self.model);
+        }
         self.schedule.run(&mut self.model);
+        self.step_schedule.run(&mut self.model);
     }
 }

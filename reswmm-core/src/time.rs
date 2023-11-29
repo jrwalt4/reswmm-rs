@@ -136,7 +136,7 @@ impl Default for Clock {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Event)]
 pub struct StepRequest(Duration);
 
 impl StepRequest {
@@ -178,7 +178,7 @@ pub(crate) fn clock_controller(
     mut requests: EventReader<StepRequest>,
 ) {
     let next_step = requests
-        .iter()
+        .read()
         .map(|StepRequest(step)| step)
         .min()
         .copied()
