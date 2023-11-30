@@ -722,6 +722,7 @@ dependencies = [
  "furlong",
  "itertools",
  "num-traits",
+ "petgraph",
  "reswmm-macros",
  "rusqlite",
  "serde",

@@ -1,7 +1,7 @@
 use crate::{
-    element::{Element, UID},
+    //element::{Element, UID},
     router::{
-        variable_advance_system, variable_init_next, InitSchedule, PostStepSet, PreStepSet,
+        variable_advance_system, variable_init_next, PostStepSet, PreStepSet,
         StepSet, Variable,
     },
     time::{clock_controller, Clock, ClockSettings, StepRequest},
@@ -62,6 +62,11 @@ impl Project {
             PostUpdate,
             IntoSystem::into_system(variable_advance_system::<T>),
         );
+        self
+    }
+
+    pub fn init_resource<R: Resource + FromWorld>(&mut self) -> &mut Self {
+        self.app.init_resource::<R>();
         self
     }
 

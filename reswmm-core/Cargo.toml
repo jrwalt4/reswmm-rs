@@ -16,6 +16,7 @@ num-traits = "0.2.15"
 itertools = "0.10"
 bevy_app = "0.12"
 bevy_ecs = "0.12"
+petgraph = "*"
 reswmm-macros = { path = "../reswmm-macros" }
 
 [dev-dependencies]
