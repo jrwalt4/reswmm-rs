@@ -71,31 +71,7 @@ impl Project {
     }
 
     /// Add a [`Router`] to the [`Project`].
-    pub fn add_router<M, R: IntoSystem<(), (), M>>(&mut self, router: R) -> &mut Self {
-        /*
-        let mut router = IntoSystem::into_system(router);
-        {
-            router.initialize(&mut self.model);
-        }
-        let access = router.component_access();
-        for dep in access.reads() {
-            self.graph.entry(dep)
-                .and_modify(|e| { e.push(dep)})
-                .or_insert(vec![dep]);
-        }
-        for id in access.writes() {
-            use std::collections::hash_map::Entry::*;
-            match self.graph.entry(id) {
-                Occupied(_) => {
-                    let dup = self.model.components().get_name(id).unwrap_or("{unknown}");
-                    panic!("Multiple ownership for component {}", dup);
-                },
-                Vacant(e) => {
-                    e.insert(Vec::new());
-                }
-            }
-        }
-        // */
+    pub fn add_router<M, R: IntoSystemConfigs<M>>(&mut self, router: R) -> &mut Self {
         self.app.add_systems(Update, router.in_set(StepSet));
         self
     }
@@ -118,5 +94,11 @@ impl Project {
 
     pub fn run_one(&mut self) {
         self.app.update();
+    }
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Self::new()
     }
 }

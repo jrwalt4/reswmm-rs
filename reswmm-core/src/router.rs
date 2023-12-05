@@ -1,7 +1,10 @@
 //! router
 
-pub mod hydrology;
 pub mod hydraulics;
+pub mod hydrology;
+mod network;
+
+pub use network::{Network, NetworkGraph, NetworkIterItem};
 
 use bevy_ecs::{prelude::*, query::WorldQuery, schedule::ScheduleLabel};
 
@@ -19,15 +22,15 @@ pub struct StepSet;
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, SystemSet)]
 pub struct PostStepSet;
 
-/// A variable that will be solved for in a system. 
-/// 
+/// A variable that will be solved for in a system.
+///
 /// In order to step from one timestep to another, the type must be able
 /// to provide an initial [`Next`] value based on the previously calculed
 /// value. The guess can be further refined, but a default is needed so
-/// that the memory can be properly initialized. 
-pub trait Variable: Component + Clone { }
+/// that the memory can be properly initialized.
+pub trait Variable: Component + Clone {}
 
-impl<T: Component + Clone> Variable for T { }
+impl<T: Component + Clone> Variable for T {}
 
 /// Wrapper around a `T` so that both `Prev` and `Next` values can be stored
 #[derive(Component, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -52,26 +55,26 @@ impl<T> DerefMut for Next<T> {
     }
 }
 
-/// Query the parameter value at the "next" time step 
+/// Query the parameter value at the "next" time step
 /// (the one being calculated).
 #[derive(WorldQuery)]
 pub struct NextRef<T: Variable> {
-    next_ref: &'static Next<T>
+    next_ref: &'static Next<T>,
 }
 
-/// Query the parameter value at the "next" time step 
-/// (the one being calculated) for writing. 
+/// Query the parameter value at the "next" time step
+/// (the one being calculated) for writing.
 #[derive(WorldQuery)]
 #[world_query(mutable)]
 pub struct NextMut<T: Variable> {
-    next_mut: &'static mut Next<T>
+    next_mut: &'static mut Next<T>,
 }
 
-/// Query the parameter value at the "prev" time step 
+/// Query the parameter value at the "prev" time step
 /// (the one previously calculated).
 #[derive(WorldQuery)]
 pub struct PrevRef<T: Variable> {
-    prev_ref: &'static T
+    prev_ref: &'static T,
 }
 
 pub(crate) fn variable_init_next<T: Variable>(vars: Query<(Entity, &T)>, mut commands: Commands) {
